@@ -1,7 +1,6 @@
 % A test script for the spin boson model
-% In this example the dynamics for a spin boson model are calculated
-% In this example the spin is coupled to two baths a debye bath and an
-% underdamped brownian oscillator bath
+% In this example the dynamics for a spin boson model with a Debye bath are
+% calculated
 
 % Parameters for the problem
 % system hamiltonian parameters
@@ -10,19 +9,16 @@ Delta = 2.0 ;
 % bath parameters
 beta = 1.0 ;
 % debye bath parameters
-lambda_D = 0.0 ;
-omega_D = 1.0 ;
-% UBO bath parameters Omega > gamma/2
-Omega_UBO = 1.0 ;
-gamma_UBO = 0.2 ;
-lambda_UBO = 0.5 ; 
+lambda_D = 0.5 ;
+omega_D = 2.0 ;
 
 % dynamics information
 dt = 1e-2 ;
 n_steps = 1000 ;
 krylov_dim = 8 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 20.0 ;
+L_max = 6 ;
+M_max = 4 ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -30,6 +26,12 @@ O_sys = {[[0,1];[1,0]],[[0,-1.0i];[1.0i,0]],[[1,0];[0,-1]],eye(2)} ;
 
 % initial state of the system
 rho_0_sys = [[1,0];[0,0]] ;
+
+% two objects are supplied to the HEOM dynamics function:
+% "full_system" specifies the full Hamiltonian (system + bath) and the
+% temperature.
+% "heom_dynamics" specifies the HEOM truncation, integrator for the
+% dynamics and the total propagation time and observables to be calculated.
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
@@ -40,10 +42,6 @@ full_system.H_sys = [[epsilon,Delta];
 % baths is a cell array of structs describign each bath
 full_system.baths = {struct("V",[[1,0];[0,-1]],...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
-full_system.baths = [full_system.baths,...
-    {struct("V",[[1,0];[0,-1]],...
-    "spectral_density","UBO","Omega",Omega_UBO,"lambda",lambda_UBO,...
-    "gamma",gamma_UBO)}] ;
 full_system.beta = beta ;
 
 % a struct that contains information about the HEOM dynamics
@@ -59,8 +57,9 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
 heom_dynamics.heom_truncation = struct ;
-heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+heom_dynamics.heom_truncation.truncation_method = "depth cut-off" ;
+heom_dynamics.heom_truncation.M_max = M_max ;
+heom_dynamics.heom_truncation.L_max = L_max ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % what system observables should be returned
