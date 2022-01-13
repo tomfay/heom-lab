@@ -10,6 +10,9 @@ elseif (heom_truncation_info.truncation_method == "depth cut-off")
     M = heom_truncation_info.M_max ;
     % get the max depth of the hierarchy
     L_max = heom_truncation_info.L_max ;
+elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
+    % get the maximum value of M for each mode
+    M_max_debye = findMaxMjWeightedCutoff(heom_truncation_info.L_cut, heom_bath_info.omega_Ds, heom_bath_info.lambda_Ds, heom_bath_info.beta) ;
 end
 % get arrays the ado frequencies (nus) and coupling coefficents (cs)
 % for the debye, OBO and UBO baths
