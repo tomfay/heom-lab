@@ -22,7 +22,8 @@ dt = 1e-2 ;
 n_steps = 1000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-10 ;
-Gamma_cut = 12.0 ;
+L_cut = 25 ;
+p = 1 ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -59,8 +60,9 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
 heom_dynamics.heom_truncation = struct ;
-heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+heom_dynamics.heom_truncation.truncation_method = "coupling weighted cut-off" ;
+heom_dynamics.heom_truncation.L_cut = L_cut ;
+heom_dynamics.heom_truncation.p = p ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % what system observables should be returned

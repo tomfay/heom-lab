@@ -13,7 +13,11 @@ elseif (heom_truncation_info.truncation_method == "depth cut-off")
 elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
     % get the maximum value of M for each mode
     M_max_debye = findMaxMjWeightedCutoff(heom_truncation_info.L_cut, heom_bath_info.omega_Ds, heom_bath_info.lambda_Ds, heom_bath_info.beta) ;
+    M_max_OBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_OBOs, heom_bath_info.lambda_OBOs, heom_bath_info.gamma_OBOs, heom_bath_info.beta) ;
+    M_max_UBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_UBOs, heom_bath_info.lambda_UBOs, heom_bath_info.gamma_UBOs, heom_bath_info.beta) ;
+    M = max([M_max_debye,M_max_OBO,M_max_UBO]) ;
 end
+
 % get arrays the ado frequencies (nus) and coupling coefficents (cs)
 % for the debye, OBO and UBO baths
 nus = [] ;
@@ -50,6 +54,10 @@ if (heom_truncation_info.truncation_method == "frequency cut-off")
 elseif (heom_truncation_info.truncation_method == "depth cut-off")
     % construct the hierarchy structure with depth (L) based truncation
     [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyDepthTrunc(L_max,nus) ;
+elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
+    % construct the hierarchy structure with coupling weighted depth
+    % truncation
+    [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
 end
 
 heom_structure = struct ;

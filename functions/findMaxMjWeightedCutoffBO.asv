@@ -8,14 +8,12 @@ for j = 1:N_baths
 %     c = L_cut *sqrt(lambda(j)*Omega(j)*Omega(j)/(8*pi*gamma(j))) * (beta/(2*pi)) ;
 %     M_guess = 10 ;
 %     f = @(x) sqrt(x.*abs( x.*x - a*(x.*x+ b ).^2 ))- c ;
-%     M_baths(j) = floor(fzero(f,M_guess)) ;
     a = lambda(j) * gamma(j) * (Omega(j)^2)/(4*beta) ;
     f = @(v) (v / sqrt(abs( a * v / (gamma(j)^2 * v.*v - (v.*v - Omega(j)^2).^2) ))) - L_cut;
-    nu_guess = 2*pi / beta ;
-    nu_max = fzero(f,nu_guess) ;
-    M_baths(j) = floor( beta *  nu_max / (2*pi)) ;
+    nu_guess
+    nu_max = fzero(f,M_guess)
 
-
+    M_baths(j) = floor(fzero(f,M_guess)) ;
 end
 M_max = max(M_baths) ;
 
