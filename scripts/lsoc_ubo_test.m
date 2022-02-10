@@ -5,24 +5,30 @@
 
 % Parameters for the problem
 % system hamiltonian parameters
-epsilon = 1.5 ;
-Delta = 2.0 ;
+epsilon = 0.75 ;
 % bath parameters
 beta = 1.0 ;
 % debye bath parameters
-lambda_D = 0.0 ;
-omega_D = 1.0 ;
-% UBO bath parameters Omega > gamma/2
-Omega_UBO = 1.0 ;
-gamma_UBO = 0.2 ;
-lambda_UBO = 0.5 ; 
+lambda_D_t = 0.6 ;
+omega_D_t = 0.2 ;
+lambda_c = 1.0 ;
+Omega_c = 1.0 ;
+gamma_c = 0.2 ;
+Delta = 1.0 ;
+Lambda = 0.1 ;
+phi_0 = pi*0.5 ;
+Delta_0 = Delta * cos(phi_0) ;
+Delta_1 = -Delta * sin(phi_0) ;
+Lambda_0 = Lambda * sin(phi_0) ;
+Lambda_1 = Lambda * cos(phi_0) ;
+eta = 0.0 ; % determines how close to eq initial density is
 
 % dynamics information
 dt = 1e-2 ;
-n_steps = 1000 ;
+n_steps = 10000 ;
 krylov_dim = 8 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 20.0 ;
+Gamma_cut = 8.0 ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -35,15 +41,14 @@ rho_0_sys = [[1,0];[0,0]] ;
 % the full open quantum system
 full_system = struct ;
 % H_sys contains the system Hamiltonian
-full_system.H_sys = [[epsilon,Delta];
-                     [Delta,-epsilon]];
+full_system.H_sys = [[epsilon/2,Delta_0+1.0i*Lambda_0];
+                     [Delta_0-1.0i*Lambda_0,-epsilon/2]];
 % baths is a cell array of structs describign each bath
 full_system.baths = {struct("V",[[1,0];[0,-1]],...
-    "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
-full_system.baths = [full_system.baths,...
-    {struct("V",[[1,0];[0,-1]],...
-    "spectral_density","UBO","Omega",Omega_UBO,"lambda",lambda_UBO,...
-    "gamma",gamma_UBO)}] ;
+    "spectral_density","debye","omega_D",omega_D_t,"lambda_D",lambda_D_t)} ;
+full_system.baths = [full_system.baths,struct("V",[[1*(1-eta),(Delta_1 + 1.0i * Lambda_1)];[(Delta_1 - 1.0i * Lambda_1),-1*(1+eta)]],...
+    "spectral_density","UBO","Omega",Omega_c,"lambda",lambda_c,...
+    "gamma",gamma_c)] ;
 full_system.beta = beta ;
 
 % a struct that contains information about the HEOM dynamics
@@ -71,4 +76,21 @@ heom_dynamics.observables.system = O_sys ;
 heom_dynamics.rho_0_sys = rho_0_sys ;
 
 % run the dynamics
-[O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
+[O_t_up,t] = runHEOMDynamics(full_system,heom_dynamics) ;
+
+% the full_system object contains all information about the Hamiltonian of
+% the full open quantum system
+full_system = struct ;
+% H_sys contains the system Hamiltonian
+full_system.H_sys = [[epsilon/2,Delta_0-1.0i*Lambda_0];
+                     [Delta_0+1.0i*Lambda_0,-epsilon/2]];
+% baths is a cell array of structs describign each bath
+full_system.baths = {struct("V",[[1,0];[0,-1]],...
+    "spectral_density","debye","omega_D",omega_D_t,"lambda_D",lambda_D_t)} ;
+full_system.baths = [full_system.baths,struct("V",[[1*(1-eta),(Delta_1 - 1.0i * Lambda_1)];[(Delta_1 + 1.0i * Lambda_1),-1*(1+eta)]],...
+    "spectral_density","UBO","Omega",Omega_c,"lambda",lambda_c,...
+    "gamma",gamma_c)] ;
+full_system.beta = beta ;
+
+% run the dynamics
+[O_t_down,t] = runHEOMDynamics(full_system,heom_dynamics) ;

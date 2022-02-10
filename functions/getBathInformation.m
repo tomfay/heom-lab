@@ -42,10 +42,10 @@ heom_bath_info.lambda_Ds = lambda_Ds ;
 heom_bath_info.omega_Ds = omega_Ds ;
 heom_bath_info.lambda_OBOs = lambda_OBOs ;
 heom_bath_info.Omega_OBOs = Omega_OBOs ;
-heom_bath_info.gamma_OBOs = Omega_OBOs ;
+heom_bath_info.gamma_OBOs = gamma_OBOs ;
 heom_bath_info.lambda_UBOs = lambda_UBOs ;
 heom_bath_info.Omega_UBOs = Omega_UBOs ;
-heom_bath_info.gamma_UBOs = Omega_UBOs ;
+heom_bath_info.gamma_UBOs = gamma_UBOs ;
 heom_bath_info.beta = full_system.beta ;
 
 end
