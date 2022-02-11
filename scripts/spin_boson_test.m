@@ -28,8 +28,10 @@ Gamma_cut = 12.0 ;
 % sigma_z, and 1
 O_sys = {[[0,1];[1,0]],[[0,-1.0i];[1.0i,0]],[[1,0];[0,-1]],eye(2)} ;
 
+
 % initial state of the system
 rho_0_sys = [[1,0];[0,0]] ;
+
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system

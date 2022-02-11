@@ -101,7 +101,6 @@ for j = 1:n_baths
     V_R{j} = kron(id_sys,transpose(V{j})) ;
     V_comm{j} = V_L{j}-V_R{j} ;
 end
-
 % add matsurbara truncation correction
 Xi = sparse([],[],[],d_liou,d_liou) ;
 if (heom_truncation_info.heom_termination == "markovian" )
