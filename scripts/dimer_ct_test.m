@@ -1,0 +1,73 @@
+% set up system parameters
+% H_s,A parameters
+delta_epsilon = 0.0 ;
+J = 0.25 ; 
+
+% set up explicit bath parameters
+lambda_D = 0.1*1.75 ;
+omega_D = 0.1*2.5 ;
+beta = 1.0 ;
+lambda_AB = 5 ;
+omega_AB = 2 ;
+Gamma_AB = 0.025 ;
+Delta_E_AB = 2 ;
+
+% dynamics information
+dt = 1e-1 ;
+n_steps = 10000 ;
+krylov_dim = 16 ;
+krylov_tol = 1e-8 ;
+% Gamma_cut = 7.5 ;
+p = 1 ;
+L_cut = 10 ;
+
+% the full_system object contains all information about the Hamiltonian of
+% the full open quantum system
+full_system = struct ;
+% H_sys contains the system Hamiltonian
+full_system.H_sys = [[delta_epsilon/2,J,0];
+                       [J,-delta_epsilon/2,Gamma_AB];
+                       [0,Gamma_AB,lambda_AB-Delta_E_AB]];
+% baths is a cell array of structs describign each bath
+full_system.baths = {struct("V",[[1,0,0];[0,0,0];[0,0,0]],...
+    "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
+full_system.baths = [full_system.baths,...
+    {struct("V",[[0,0,0];[0,1,0];[0,0,0]],...
+    "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)}] ;
+full_system.baths = [full_system.baths,...
+    {struct("V",[[0,0,0];[0,0,0];[0,0,1]],...
+    "spectral_density","debye","omega_D",omega_AB,"lambda_D",lambda_AB)}] ;
+full_system.beta = beta ;
+
+% set up the dynamics struct
+heom_dynamics = struct() ;
+% set the initial condition
+heom_dynamics.rho_0_sys = [[1,0,0];[0,0,0];[0,0,0]] ;
+
+
+% set up observable arrays
+heom_dynamics.observables = struct() ;
+heom_dynamics.observables.system = {[[0,1,0];[1,0,0];[0,0,0]],[[0,-1.0i,0];[1.0i,0,0];[0,0,0]],[[1,0,0];[0,-1,0];[0,0,0]],[[1,0,0];[0,1,0];[0,0,0]],[[0,0,0];[0,0,0];[0,0,1]]} ;
+
+% integrator information, currently only the short iterative arnoldi is
+% implemented
+heom_dynamics.integrator = struct ;
+heom_dynamics.integrator.method = "SIA" ;
+heom_dynamics.integrator.dt = dt ;
+heom_dynamics.integrator.n_steps = n_steps ;
+heom_dynamics.integrator.krylov_dim = krylov_dim ;
+heom_dynamics.integrator.krylov_tol = krylov_tol ;
+
+% hierarchy trunction information
+% heom_dynamics.heom_truncation = struct ;
+% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation = struct ;
+heom_dynamics.heom_truncation.truncation_method = "coupling weighted cut-off" ;
+heom_dynamics.heom_truncation.L_cut = L_cut ;
+heom_dynamics.heom_truncation.p = p ;
+heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+
+% run the dynamics
+[O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;

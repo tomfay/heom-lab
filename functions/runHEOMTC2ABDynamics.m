@@ -1,4 +1,4 @@
-function [O_t,t] = runHEOMTC2ABDynamics(full_system,heom_dynamics)
+function [O_t,t] = runHEOMTC2ABDynamics(full_system,heom_dynamics,AB_coupling_info)
 % convert the bath info into a more use-able form - these are the
 % explicitly treated baths
 [heom_bath_info_A,heom_bath_info_B] = getBathInformationAB(full_system) ;
@@ -23,6 +23,9 @@ B_inds = (d_heom_A+1):d_heom ;
 L(A_inds,A_inds) = L_A ;
 L(B_inds,B_inds) = L_B ;
 
+[K,c_ts,ts] = constructTC2ABOperator(AB_coupling_info, full_system.H_sys_A, full_system.H_sys_B,d_heom_A,d_heom_B) ;
+
+L = L + K ;
 % construct the rho_0 for the full hierarchy
 rho_0_heom = zeros([d_heom,1]) ;
 rho_0_heom(1:d_liou_A) = convertToLiouvilleVector(heom_dynamics.rho_0_sys_A) ;

@@ -23,6 +23,8 @@ end
 nus = [] ;
 cs = [] ;
 cbars = [] ;
+mode_info = struct() ;
+mode_info.M = M ;
 if (numel(heom_bath_info.lambda_Ds)>0)
     [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
         heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
@@ -30,6 +32,9 @@ if (numel(heom_bath_info.lambda_Ds)>0)
     nus = [nus,reshape(transpose(nus_array_debye),[1,n_debye])] ;
     cs = [cs,reshape(transpose(cs_array_debye),[1,n_debye])] ;
     cbars = [cbars,reshape(transpose(cs_array_debye),[1,n_debye])] ;
+    mode_info.n_debye = n_debye ;
+else
+    mode_info.n_debye = 0 ;
 end
 if (numel(heom_bath_info.lambda_OBOs)>0)
     [nus_array_OBO,cs_array_OBO] = generateNusAndCsOBO(heom_bath_info.gamma_OBOs,...
@@ -38,6 +43,9 @@ if (numel(heom_bath_info.lambda_OBOs)>0)
     nus = [nus,reshape(transpose(nus_array_OBO),[1,n_OBO])] ;
     cs = [cs,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
     cbars = [cbars,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
+    mode_info.n_obo = n_OBO ;
+else
+    mode_info.n_obo = 0 ;
 end
 if (numel(heom_bath_info.lambda_UBOs)>0)
     [nus_array_UBO,cs_array_UBO,cbars_array_UBO] = generateNusAndCsUBO(heom_bath_info.gamma_UBOs,...
@@ -46,6 +54,9 @@ if (numel(heom_bath_info.lambda_UBOs)>0)
     nus = [nus,reshape(transpose(nus_array_UBO),[1,n_UBO])] ;
     cs = [cs,reshape(transpose(cs_array_UBO),[1,n_UBO])] ;
     cbars = [cbars,reshape(transpose(cbars_array_UBO),[1,n_UBO])] ;
+    mode_info.n_ubo = n_UBO ;
+else
+    mode_info.n_ubo = 0 ;
 end
 
 if (heom_truncation_info.truncation_method == "frequency cut-off")
@@ -60,6 +71,9 @@ elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
     [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
 end
 
+% create an array of the coupled mode indices
+coupled_bath_indices = getCoupledBathIndices(coupled_mode_indices,mode_info) ;
+
 heom_structure = struct ;
 heom_structure.ado_gammas = ado_gammas ;
 heom_structure.ado_indices = ado_indices ;
@@ -67,6 +81,7 @@ heom_structure.lower_indices = lower_indices ;
 heom_structure.upper_indices = upper_indices ;
 heom_structure.coupled_mode_indices = coupled_mode_indices ;
 heom_structure.truncated_coupled_modes = truncated_coupled_modes ;
+heom_structure.coupled_bath_indices = coupled_bath_indices ;
 heom_structure.nus = nus ;
 heom_structure.cs = cs ;
 heom_structure.cbars = cbars ;
@@ -101,6 +116,7 @@ for j = 1:n_baths
     V_R{j} = kron(id_sys,transpose(V{j})) ;
     V_comm{j} = V_L{j}-V_R{j} ;
 end
+
 % add matsurbara truncation correction
 Xi = sparse([],[],[],d_liou,d_liou) ;
 if (heom_truncation_info.heom_termination == "markovian" )
@@ -139,7 +155,9 @@ for r = 1:n_couplings
     J = lower_indices(r) ;
     K = upper_indices(r) ;
     jk_coup = coupled_mode_indices(r) ;
-    j_coup = ceil(jk_coup/(M+2)) ; % get the bath index that is coupling J & K
+    % need to fix getting the bath index!!!!
+%     j_coup = ceil(jk_coup/(M+1)) ; % get the bath index that is coupling J & K
+    j_coup = coupled_bath_indices(r) ;
     k_coup = jk_coup - j_coup*(M+1) ; % Matsubara mode index, k=0 is non-Matsubara term
     J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
     K_block = ((K-1)*(d_liou)+1):(K*d_liou) ;

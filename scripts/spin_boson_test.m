@@ -5,13 +5,13 @@
 
 % Parameters for the problem
 % system hamiltonian parameters
-epsilon = 1.5 ;
-Delta = 1.0 ;
+epsilon = 0 ;
+Delta = 1.0e0 ;
 % bath parameters
 beta = 1.0 ;
 % debye bath parameters
-lambda_D = 1.0 ;
-omega_D = 0.5 ;
+lambda_D = 1.75 ;
+omega_D = 0.1*2.5 ;
 % UBO bath parameters Omega > gamma/2
 Omega_UBO = 1.0 ;
 gamma_UBO = 0.2 ;
@@ -19,10 +19,10 @@ lambda_UBO = 0.5 ;
 
 % dynamics information
 dt = 1e-2 ;
-n_steps = 1000 ;
+n_steps = 10000 ;
 krylov_dim = 16 ;
-krylov_tol = 1e-10 ;
-Gamma_cut = 12.0 ;
+krylov_tol = 1e-12 ;
+Gamma_cut = 10.0 ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -40,12 +40,14 @@ full_system = struct ;
 full_system.H_sys = [[epsilon,Delta];
                      [Delta,-epsilon]];
 % baths is a cell array of structs describign each bath
-full_system.baths = {struct("V",[[1,0];[0,-1]],...
+full_system.baths = {struct("V",[[0,0];[0,1]],...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
-full_system.baths = [full_system.baths,...
-    {struct("V",[[1,0];[0,-1]],...
-    "spectral_density","UBO","Omega",Omega_UBO,"lambda",lambda_UBO,...
-    "gamma",gamma_UBO)}] ;
+full_system.baths = [full_system.baths,{struct("V",[[1,0];[0,0]],...
+    "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)}] ;
+% full_system.baths = [full_system.baths,...
+%     {struct("V",[[1,0];[0,-1]],...
+%     "spectral_density","UBO","Omega",Omega_UBO,"lambda",lambda_UBO,...
+%     "gamma",gamma_UBO)}] ;
 full_system.beta = beta ;
 
 % a struct that contains information about the HEOM dynamics
@@ -63,7 +65,7 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 heom_dynamics.heom_truncation = struct ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation.heom_termination = "not markovian" ;
 
 % what system observables should be returned
 heom_dynamics.observables = struct ;

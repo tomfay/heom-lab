@@ -7,36 +7,36 @@
 
 % set up system parameters
 % H_s,A parameters
-delta_epsilon = 1.0 ;
+delta_epsilon = 0.0 ;
 J = 1.0 ; 
 
 % set up explicit bath parameters
-lambda_D = 0.5 ;
-omega_D = 0.5 ;
+lambda_D = 0.1*1.75 ;
+omega_D = 0.1*2.5 ;
 beta = 1.0 ;
 lambda_AB = 5 ;
-omega_AB = 0.5 ;
-Gamma_AB = 0.1 ;
-Delta_E_AB = -5 ;
+omega_AB = 2 ;
+Gamma_AB = 0.025 ;
+Delta_E_AB = 2 ;
 
 % dynamics information
-dt = 1e-2 ;
-n_steps = 1000 ;
+dt = 1e-1 ;
+n_steps = 10000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 5.0 ;
+Gamma_cut = 10.0 ;
 
 % parameters for evaluating to AB correlation function
-t_max = 1 ;
-n_t = 200 ;
-n_modes = 200 ; % number of modes used to discretise the spectral density
+t_max = sqrt((beta/lambda_AB)*log(1/1e-8)) ;
+n_t = 400 ;
+n_modes = 256 ; % number of modes used to discretise the spectral density
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
 full_system = struct ;
 % H_sys contains the system Hamiltonian
 full_system.H_sys_A = [[delta_epsilon/2,J];
-                     [J,-delta_epsilon]];
+                     [J,-delta_epsilon/2]];
 full_system.H_sys_B = [[0]] ;
 % baths is a cell array of structs describign each bath
 full_system.baths = {struct("V_A",[[1,0];[0,0]],"V_B",[[0]],...
@@ -70,17 +70,18 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 heom_dynamics.heom_truncation = struct ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation.heom_termination = "not markovian" ;
 
 % details of the strongly coupled bath
 AB_coupling_info = struct() ;
 AB_coupling_info.baths = {struct("spectral_density","debye","omega_D",omega_AB,"lambda_D",lambda_AB)} ;
 AB_coupling_info.beta = beta ;
-AB_coupling_info.coupling = [0;Gamma_AB] ; % Gamma_a,b matrix
+AB_coupling_info.coupling_matrix = [0;Gamma_AB] ; % Gamma_a,b matrix
 AB_coupling_info.Delta_E_AB = Delta_E_AB ;
 AB_coupling_info.t_max = t_max ;
 AB_coupling_info.n_t = n_t ;
 AB_coupling_info.n_modes = n_modes ;
+AB_coupling_info.method = "simplified" ;
 
 % run the dynamics
-[O_t,t] = runHEOMTC2ABDynamics(full_system,heom_dynamics) ;
+[O_t_AB,t_AB] = runHEOMTC2ABDynamics(full_system,heom_dynamics,AB_coupling_info) ;
