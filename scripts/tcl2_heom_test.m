@@ -7,33 +7,35 @@
 
 % set up system parameters
 % H_s,A parameters
-delta_epsilon = 0.0 ;
-J = 1.0 ; 
+delta_epsilon = 1.0e0 ;
+J = 1.0e0 ; 
 
 % set up explicit bath parameters
-lambda_D = 0.1*1.75 ;
-omega_D = 0.1*2.5 ;
+lambda_D = 1e-1 ;
+omega_D = 2 ;
 beta = 1.0 ;
-lambda_AB = 5 ;
+lambda_AB = 10.0 ;
 omega_AB = 2 ;
-Gamma_AB = 0.025 ;
-Delta_E_AB = 2 ;
+Gamma_AB = 0.1 ;
+Delta_E_AB = 8 ;
 
 % dynamics information
-dt = 1e-1 ;
-n_steps = 10000 ;
-krylov_dim = 16 ;
-krylov_tol = 1e-8 ;
-Gamma_cut = 10.0 ;
+dt = 0.02e0 ;
+n_steps = 200000 ;
+krylov_dim = 8 ;
+krylov_tol = 1e-12 ;
+Gamma_cut = 25.0 ;
+p = 2 ;
+L_cut = 40 ;
 
 % parameters for evaluating to AB correlation function
-t_max = sqrt((beta/lambda_AB)*log(1/1e-8)) ;
-n_t = 400 ;
-n_modes = 256 ; % number of modes used to discretise the spectral density
+t_max = sqrt((beta/lambda_AB)*log(1/1e-10)) ;
+n_t = 1000 ;
+n_modes = 512 ; % number of modes used to discretise the spectral density
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
-full_system = struct ;
+full_system = struct() ;
 % H_sys contains the system Hamiltonian
 full_system.H_sys_A = [[delta_epsilon/2,J];
                      [J,-delta_epsilon/2]];
@@ -44,6 +46,11 @@ full_system.baths = {struct("V_A",[[1,0];[0,0]],"V_B",[[0]],...
 full_system.baths = [full_system.baths,...
     {struct("V_A",[[0,0];[0,1]],"V_B",[[0]],...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)}] ;
+% full_system.baths = [full_system.baths,...
+%     {struct("V_A",[[1,0.5];[0.5,0]],"V_B",[[0]],...
+%     "spectral_density","debye","omega_D",omega_D,"lambda_D",0.25*lambda_D)}] ;
+% full_system.baths = {struct("V_A",[[1,0];[0,-1]],"V_B",[[0]],...
+%     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
 full_system.beta = beta ;
 
 % set up the dynamics struct
@@ -67,10 +74,15 @@ heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
-heom_dynamics.heom_truncation = struct ;
-heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-heom_dynamics.heom_truncation.heom_termination = "not markovian" ;
+% heom_dynamics.heom_truncation = struct() ;
+% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation = struct() ;
+heom_dynamics.heom_truncation.truncation_method = "coupling weighted cut-off" ;
+heom_dynamics.heom_truncation.L_cut = L_cut ;
+heom_dynamics.heom_truncation.p = p ;
+heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % details of the strongly coupled bath
 AB_coupling_info = struct() ;
@@ -81,7 +93,11 @@ AB_coupling_info.Delta_E_AB = Delta_E_AB ;
 AB_coupling_info.t_max = t_max ;
 AB_coupling_info.n_t = n_t ;
 AB_coupling_info.n_modes = n_modes ;
-AB_coupling_info.method = "simplified" ;
+% AB_coupling_info.method = "simplified" ;
+% AB_coupling_info.method = "include H_sys" ;
+% AB_coupling_info.method = "include H_sys NZ" ;
+AB_coupling_info.method = "full NZ" ;
+AB_coupling_info.phonon_method = "none" ;
 
 % run the dynamics
-[O_t_AB,t_AB] = runHEOMTC2ABDynamics(full_system,heom_dynamics,AB_coupling_info) ;
+[O_t_AB,t_AB,junk] = runHEOMTC2ABDynamics(full_system,heom_dynamics,AB_coupling_info) ;

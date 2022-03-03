@@ -1,91 +1,112 @@
-function [L_heom,heom_structure] = constructHEOMGenerator(H_sys,heom_bath_info,heom_truncation_info)
+function [L_heom,heom_structure] = constructHEOMGenerator(H_sys,heom_bath_info,heom_truncation_info,heom_structure_in)
 
-% set up the hierarchy using the Djkstra frequency cut-off method using
-% matsubara decompositions of the bath correlation functions
-if (heom_truncation_info.truncation_method == "frequency cut-off")
-    % get the maximum matsubara mode that contributrs to the hierarchy
-    M = findMaxMj(heom_truncation_info.Gamma_cut, heom_bath_info.beta) ;
-elseif (heom_truncation_info.truncation_method == "depth cut-off")
-    % get the specified maximum matsurbara mode 
-    M = heom_truncation_info.M_max ;
-    % get the max depth of the hierarchy
-    L_max = heom_truncation_info.L_max ;
-elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
-    % get the maximum value of M for each mode
-    M_max_debye = findMaxMjWeightedCutoff(heom_truncation_info.L_cut, heom_bath_info.omega_Ds, heom_bath_info.lambda_Ds, heom_bath_info.beta) ;
-    M_max_OBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_OBOs, heom_bath_info.lambda_OBOs, heom_bath_info.gamma_OBOs, heom_bath_info.beta) ;
-    M_max_UBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_UBOs, heom_bath_info.lambda_UBOs, heom_bath_info.gamma_UBOs, heom_bath_info.beta) ;
-    M = max([M_max_debye,M_max_OBO,M_max_UBO]) ;
+if (nargin~=4)
+
+    % set up the hierarchy using the Djkstra frequency cut-off method using
+    % matsubara decompositions of the bath correlation functions
+    if (heom_truncation_info.truncation_method == "frequency cut-off")
+        % get the maximum matsubara mode that contributrs to the hierarchy
+        M = findMaxMj(heom_truncation_info.Gamma_cut, heom_bath_info.beta) ;
+    elseif (heom_truncation_info.truncation_method == "depth cut-off")
+        % get the specified maximum matsurbara mode
+        M = heom_truncation_info.M_max ;
+        % get the max depth of the hierarchy
+        L_max = heom_truncation_info.L_max ;
+    elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
+        % get the maximum value of M for each mode
+        M_max_debye = findMaxMjWeightedCutoff(heom_truncation_info.L_cut, heom_bath_info.omega_Ds, heom_bath_info.lambda_Ds, heom_bath_info.beta) ;
+        M_max_OBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_OBOs, heom_bath_info.lambda_OBOs, heom_bath_info.gamma_OBOs, heom_bath_info.beta) ;
+        M_max_UBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_UBOs, heom_bath_info.lambda_UBOs, heom_bath_info.gamma_UBOs, heom_bath_info.beta) ;
+        M = max([M_max_debye,M_max_OBO,M_max_UBO]) ;
+    end
+
+    % get arrays the ado frequencies (nus) and coupling coefficents (cs)
+    % for the debye, OBO and UBO baths
+    nus = [] ;
+    cs = [] ;
+    cbars = [] ;
+    mode_info = struct() ;
+    mode_info.M = M ;
+    if (numel(heom_bath_info.lambda_Ds)>0)
+        [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
+            heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
+        n_debye = numel(nus_array_debye) ;
+        nus = [nus,reshape(transpose(nus_array_debye),[1,n_debye])] ;
+        cs = [cs,reshape(transpose(cs_array_debye),[1,n_debye])] ;
+        cbars = [cbars,reshape(transpose(cs_array_debye),[1,n_debye])] ;
+        mode_info.n_debye = n_debye ;
+    else
+        mode_info.n_debye = 0 ;
+    end
+    if (numel(heom_bath_info.lambda_OBOs)>0)
+        [nus_array_OBO,cs_array_OBO] = generateNusAndCsOBO(heom_bath_info.gamma_OBOs,...
+            heom_bath_info.lambda_OBOs,heom_bath_info.Omega_OBOs,heom_bath_info.beta,M) ;
+        n_OBO = numel(nus_array_OBO) ;
+        nus = [nus,reshape(transpose(nus_array_OBO),[1,n_OBO])] ;
+        cs = [cs,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
+        cbars = [cbars,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
+        mode_info.n_obo = n_OBO ;
+    else
+        mode_info.n_obo = 0 ;
+    end
+    if (numel(heom_bath_info.lambda_UBOs)>0)
+        [nus_array_UBO,cs_array_UBO,cbars_array_UBO] = generateNusAndCsUBO(heom_bath_info.gamma_UBOs,...
+            heom_bath_info.lambda_UBOs,heom_bath_info.Omega_UBOs,heom_bath_info.beta,M) ;
+        n_UBO = numel(nus_array_UBO) ;
+        nus = [nus,reshape(transpose(nus_array_UBO),[1,n_UBO])] ;
+        cs = [cs,reshape(transpose(cs_array_UBO),[1,n_UBO])] ;
+        cbars = [cbars,reshape(transpose(cbars_array_UBO),[1,n_UBO])] ;
+        mode_info.n_ubo = n_UBO ;
+    else
+        mode_info.n_ubo = 0 ;
+    end
+
+    if (heom_truncation_info.truncation_method == "frequency cut-off")
+        % construct the hierarchy structure with frequency truncation
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);
+    elseif (heom_truncation_info.truncation_method == "depth cut-off")
+        % construct the hierarchy structure with depth (L) based truncation
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyDepthTrunc(L_max,nus) ;
+    elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
+        % construct the hierarchy structure with coupling weighted depth
+        % truncation
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
+    end
+
+    % create an array of the coupled mode indices
+    coupled_bath_indices = getCoupledBathIndices(coupled_mode_indices,mode_info) ;
+
+    heom_structure = struct() ;
+    heom_structure.ado_gammas = ado_gammas ;
+    heom_structure.ado_indices = ado_indices ;
+    heom_structure.lower_indices = lower_indices ;
+    heom_structure.upper_indices = upper_indices ;
+    heom_structure.coupled_mode_indices = coupled_mode_indices ;
+    heom_structure.truncated_coupled_modes = truncated_coupled_modes ;
+    heom_structure.coupled_bath_indices = coupled_bath_indices ;
+    heom_structure.nus = nus ;
+    heom_structure.cs = cs ;
+    heom_structure.cbars = cbars ;
+    heom_structure.M = M ;
+    heom_structure.cs_array_debye = cs_array_debye ;
+    heom_structure.nus_array_debye = nus_array_debye ;
+elseif (nargin==4)
+    heom_structure = heom_structure_in ;
+    ado_gammas = heom_structure.ado_gammas  ;
+    ado_indices = heom_structure.ado_indices  ;
+    lower_indices = heom_structure.lower_indices  ;
+    upper_indices = heom_structure.upper_indices  ;
+    coupled_mode_indices = heom_structure.coupled_mode_indices   ;
+    truncated_coupled_modes = heom_structure.truncated_coupled_modes  ;
+    coupled_bath_indices = heom_structure.coupled_bath_indices  ;
+    nus = heom_structure.nus  ;
+    cs = heom_structure.cs ;
+    cbars = heom_structure.cbars  ;
+    M = heom_structure.M ;
+    cs_array_debye = heom_structure.cs_array_debye ;
+    nus_array_debye = heom_structure.nus_array_debye ;
 end
 
-% get arrays the ado frequencies (nus) and coupling coefficents (cs)
-% for the debye, OBO and UBO baths
-nus = [] ;
-cs = [] ;
-cbars = [] ;
-mode_info = struct() ;
-mode_info.M = M ;
-if (numel(heom_bath_info.lambda_Ds)>0)
-    [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
-        heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
-    n_debye = numel(nus_array_debye) ;
-    nus = [nus,reshape(transpose(nus_array_debye),[1,n_debye])] ;
-    cs = [cs,reshape(transpose(cs_array_debye),[1,n_debye])] ;
-    cbars = [cbars,reshape(transpose(cs_array_debye),[1,n_debye])] ;
-    mode_info.n_debye = n_debye ;
-else
-    mode_info.n_debye = 0 ;
-end
-if (numel(heom_bath_info.lambda_OBOs)>0)
-    [nus_array_OBO,cs_array_OBO] = generateNusAndCsOBO(heom_bath_info.gamma_OBOs,...
-        heom_bath_info.lambda_OBOs,heom_bath_info.Omega_OBOs,heom_bath_info.beta,M) ;
-    n_OBO = numel(nus_array_OBO) ;
-    nus = [nus,reshape(transpose(nus_array_OBO),[1,n_OBO])] ;
-    cs = [cs,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
-    cbars = [cbars,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
-    mode_info.n_obo = n_OBO ;
-else
-    mode_info.n_obo = 0 ;
-end
-if (numel(heom_bath_info.lambda_UBOs)>0)
-    [nus_array_UBO,cs_array_UBO,cbars_array_UBO] = generateNusAndCsUBO(heom_bath_info.gamma_UBOs,...
-        heom_bath_info.lambda_UBOs,heom_bath_info.Omega_UBOs,heom_bath_info.beta,M) ;
-    n_UBO = numel(nus_array_UBO) ;
-    nus = [nus,reshape(transpose(nus_array_UBO),[1,n_UBO])] ;
-    cs = [cs,reshape(transpose(cs_array_UBO),[1,n_UBO])] ;
-    cbars = [cbars,reshape(transpose(cbars_array_UBO),[1,n_UBO])] ;
-    mode_info.n_ubo = n_UBO ;
-else
-    mode_info.n_ubo = 0 ;
-end
-
-if (heom_truncation_info.truncation_method == "frequency cut-off")
-    % construct the hierarchy structure with frequency truncation
-    [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);
-elseif (heom_truncation_info.truncation_method == "depth cut-off")
-    % construct the hierarchy structure with depth (L) based truncation
-    [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyDepthTrunc(L_max,nus) ;
-elseif (heom_truncation_info.truncation_method == "coupling weighted cut-off")
-    % construct the hierarchy structure with coupling weighted depth
-    % truncation
-    [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
-end
-
-% create an array of the coupled mode indices
-coupled_bath_indices = getCoupledBathIndices(coupled_mode_indices,mode_info) ;
-
-heom_structure = struct ;
-heom_structure.ado_gammas = ado_gammas ;
-heom_structure.ado_indices = ado_indices ;
-heom_structure.lower_indices = lower_indices ;
-heom_structure.upper_indices = upper_indices ;
-heom_structure.coupled_mode_indices = coupled_mode_indices ;
-heom_structure.truncated_coupled_modes = truncated_coupled_modes ;
-heom_structure.coupled_bath_indices = coupled_bath_indices ;
-heom_structure.nus = nus ;
-heom_structure.cs = cs ;
-heom_structure.cbars = cbars ;
-heom_structure.M = M ;
 
 % get some dimensions of things for setting up the HEOM generator
 d_sys = size(H_sys,1) ;
@@ -156,7 +177,7 @@ for r = 1:n_couplings
     K = upper_indices(r) ;
     jk_coup = coupled_mode_indices(r) ;
     % need to fix getting the bath index!!!!
-%     j_coup = ceil(jk_coup/(M+1)) ; % get the bath index that is coupling J & K
+    %     j_coup = ceil(jk_coup/(M+1)) ; % get the bath index that is coupling J & K
     j_coup = coupled_bath_indices(r) ;
     k_coup = jk_coup - j_coup*(M+1) ; % Matsubara mode index, k=0 is non-Matsubara term
     J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
