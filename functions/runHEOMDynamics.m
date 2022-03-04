@@ -1,4 +1,4 @@
-function [O_t,t] = runHEOMDynamics(full_system,heom_dynamics)
+function [O_t,t,rho_final_heom,L_heom] = runHEOMDynamics(full_system,heom_dynamics)
 % convert the bath info into a more use-able form
 heom_bath_info = getBathInformation(full_system) ;
 % construct the HEOM dynamics genrator as a sparse matrix
@@ -19,10 +19,18 @@ for n = 1:n_obs
 end
 % run the dynamics
 integrator = heom_dynamics.integrator ;
-if (heom_dynamics.integrator.method == 'SIA')
-    [O_t,t] = runDynamicsSIADensityOperator(rho_0_heom,L_heom,...
+if (integrator.method == 'SIA')
+    [O_t,t,rho_final_heom] = runDynamicsSIADensityOperator(rho_0_heom,L_heom,...
         integrator.n_steps,integrator.dt,O,integrator.krylov_dim,...
         integrator.krylov_tol) ;
+elseif (integrator.method == 'adaptive taylor')
+    [O_t, t, rho_final_heom] = runDynamicsAdaptiveTaylorDensityOperator(rho_0_heom,L_heom,...
+        integrator.t_max,O,integrator.order,integrator.tol) ;
+elseif (integrator.method == 'adaptive SIA')
+    [O_t,t,rho_final_heom] = runDynamicsSIADensityOperator(rho_0_heom,L_heom,...
+        integrator.n_steps,integrator.dt,O,integrator.krylov_dim,...
+        integrator.krylov_tol) ;
+
 end
 
 end
