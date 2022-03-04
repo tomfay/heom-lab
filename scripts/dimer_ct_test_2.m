@@ -7,20 +7,20 @@ J = 1.0e0 ;
 lambda_D = 10e-1 ;
 omega_D = 2 ;
 beta = 1.0 ;
-lambda_AB = 8.0 ;
+lambda_AB = 10.0 ;
 omega_AB = 2 ;
 Gamma_AB = 0.1 ;
-Delta_E_AB = 6 ;
+Delta_E_AB = 8 ;
 eta = sqrt(lambda_AB/lambda_D) ;
 
 % dynamics information
 dt = 0.02e0 ;
-n_steps = 100000 ;
+n_steps = 200000 ;
 krylov_dim = 8 ;
-krylov_tol = 1e-11 ;
+krylov_tol = 1e-12 ;
 Gamma_cut = 20 ;
 p = 1 ;
-L_cut = 34 ;
+L_cut = 30 ;
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
