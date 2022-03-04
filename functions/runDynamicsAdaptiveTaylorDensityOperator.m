@@ -1,0 +1,69 @@
+function [O_t, t, rho_t] = runDynamicsAdaptiveTaylorDensityOperator(rho_0,L,t_max,O,order,tol)
+
+% set up removal of instabilities
+% remove_instab = 1 ;
+
+
+%evolve the system evolving under
+d = size(L,1) ;
+
+% u = zeros([d,1]);
+% u(1:4) = convertToLiouvilleVector(eye(2)) ;
+
+% set up a matrix of observable operators from the input cell array
+if isa(O,'cell')
+O_mat = zeros([n_obs,d]) ;
+n_obs = length(O) ;
+    for j = 1:n_obs
+        O_mat(j,:) = convertToLiouvilleVector(O{j})' ;
+    end
+elseif isa(O,'numeric')
+   n_obs = size(O,1) ;
+   O_mat = O ; 
+end
+
+% empty array for observables
+t = [0] ;
+O_t = zeros([n_obs,1]) ;
+O_t(:,1) = O_mat * rho_0 ;
+
+% set up krylov subspace and full space states
+rho_t = rho_0 ;
+
+Lpow_rho = zeros([d,order+1]) ; 
+t_current = 0.0 ;
+n_t = 1 ;
+
+c = 1./factorial([1:(order+1)]) ;
+tol_eff = factorial(order+1) * tol ; 
+
+while (t_current<t_max)
+    % construct an array of 
+    Lpow_rho(:,1) = L*rho_t ;
+    for k = 1:(order)
+        Lpow_rho(:,k+1) = L*Lpow_rho(:,k) ;
+    end
+    norm_rho_t = norm(rho_t) ;
+    norm_corr_rho = norm(Lpow_rho(:,order+1)) ;
+    dt_approx = (tol_eff * norm_rho_t / norm_corr_rho)^(1/(order+1)) ;
+    rho_t_approx = rho_t ;
+    dt_approx_k = 1.0 ;
+    for k = 1:order
+        dt_approx_k = dt_approx_k * dt_approx ;
+        rho_t_approx = rho_t_approx + (c(k)*dt_approx_k)*Lpow_rho(:,k) ;
+    end
+    norm_rho_t_approx = norm(rho_t_approx) ;
+    dt = (tol_eff * norm_rho_t_approx / norm_corr_rho)^(1/(order+1)) ;
+    dt_k = 1.0 ;
+    for k = 1:order
+        dt_k = dt_k * dt ;
+        rho_t = rho_t + (c(k)*dt_k)*Lpow_rho(:,k) ;
+    end
+    
+    t_current = t_current+dt ;
+    n_t = n_t+1 ;
+    t(n_t) = t_current ;
+    O_t(:,n_t) = O_mat * rho_t ; 
+end
+
+end

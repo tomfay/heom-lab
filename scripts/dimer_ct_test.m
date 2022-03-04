@@ -1,13 +1,13 @@
 % set up system parameters
 % H_s,A parameters
 delta_epsilon = 1.0e0 ;
-J = 1.0e0 ; 
+J = 1.0e-1 ; 
 
 % set up explicit bath parameters
-lambda_D = 10e-1 ;
+lambda_D = 1.0e0 ;
 omega_D = 2 ;
 beta = 1.0 ;
-lambda_AB = 8.0 ;
+lambda_AB = 6.0 ;
 omega_AB = 2 ;
 Gamma_AB = 0.1 ;
 Delta_E_AB = 6 ;
@@ -15,12 +15,14 @@ eta = sqrt(lambda_AB/lambda_D) ;
 
 % dynamics information
 dt = 0.02e0 ;
-n_steps = 100000 ;
-krylov_dim = 8 ;
-krylov_tol = 1e-11 ;
+n_steps = 200000 ;
+krylov_dim = 9 ;
+krylov_tol = 1e-12 ;
+order_adapt_taylor = 4 ;
+tol_adapt_taylor = 1e-6 ;
 Gamma_cut = 20 ;
 p = 1 ;
-L_cut = 34 ;
+L_cut = 20 ;
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
@@ -68,12 +70,17 @@ heom_dynamics.observables.system = {[[0,1,0];[1,0,0];[0,0,0]],[[0,-1.0i,0];[1.0i
 
 % integrator information, currently only the short iterative arnoldi is
 % implemented
-heom_dynamics.integrator = struct ;
-heom_dynamics.integrator.method = "SIA" ;
+heom_dynamics.integrator = struct() ;
+heom_dynamics.integrator.method = "adaptive SIA" ;
 heom_dynamics.integrator.dt = dt ;
 heom_dynamics.integrator.n_steps = n_steps ;
 heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
+% heom_dynamics.integrator = struct() ;
+% heom_dynamics.integrator.method = "adaptive taylor" ;
+% heom_dynamics.integrator.order = order_adapt_taylor ;
+% heom_dynamics.integrator.tol = tol_adapt_taylor ;
+% heom_dynamics.integrator.t_max = n_steps*dt ;
 
 % hierarchy trunction information
 % heom_dynamics.heom_truncation = struct() ;
