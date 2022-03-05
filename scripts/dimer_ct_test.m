@@ -14,15 +14,15 @@ Delta_E_AB = 6 ;
 eta = sqrt(lambda_AB/lambda_D) ;
 
 % dynamics information
-dt = 0.02e0 ;
-n_steps = 200000 ;
+dt = 0.01e0 ;
+n_steps = 400000 ;
 krylov_dim = 9 ;
-krylov_tol = 1e-12 ;
+krylov_tol = 1e-11 ;
 order_adapt_taylor = 4 ;
-tol_adapt_taylor = 1e-6 ;
+tol_adapt_taylor = 1e-2 ;
 Gamma_cut = 20 ;
 p = 1 ;
-L_cut = 20 ;
+L_cut = 15 ;
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system

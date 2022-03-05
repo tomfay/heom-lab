@@ -36,12 +36,19 @@ c_t_corr = zeros([dim_krylov+1,1]) ;
 c_t_corr(1) = c_t(1) ;
 rho_t = rho_0 ;
 
-% generate initial krylov subspace
-[L_krylov, krylov_basis] = generateKrylovSubspace(L,rho_t,dim_krylov) ;
-% create the propagator in the krylov subspace
-U_krylov_dt = expm(dt * full(L_krylov)) ;
+% % generate initial krylov subspace
+% [L_krylov, krylov_basis] = generateKrylovSubspace(L,rho_t,dim_krylov+1) ;
+% % create the propagator in the krylov subspace
+% U_krylov_dt = expm(dt * full(L_krylov)) ;
+% % set up empty observable operators in krylov subspace
+% O_krylov = O_mat * krylov_basis() ;
+
+[L_krylov, krylov_basis] = generateKrylovSubspace(L,rho_t,dim_krylov+1) ;
+U_krylov_dt = expm(dt * full(L_krylov(1:dim_krylov,1:dim_krylov))) ;
+U_krylov_corr_dt = expm(dt * full(L_krylov)) ;
+
 % set up empty observable operators in krylov subspace
-O_krylov = O_mat * krylov_basis ;
+O_krylov = O_mat * krylov_basis(:,1:dim_krylov) ;
 
 
 % calculate initial observables
@@ -52,7 +59,7 @@ for k = 1:n_steps
     % check to see if Krylov subspace needs to be re-generated
     if norm([c_t;0]-c_t_corr) > tol*norm(c_t) 
         % generate initial krylov subspace
-        rho_t = krylov_basis * c_t ;
+        rho_t = krylov_basis(:,1:dim_krylov) * c_t ;
 %         plot(1:d,rho_t')
 %         drawnow
         [L_krylov, krylov_basis] = generateKrylovSubspace(L,rho_t,dim_krylov+1) ;
@@ -74,13 +81,13 @@ for k = 1:n_steps
     
     % propagate the state in the krylov subspace
     c_t = U_krylov_dt * c_t ;
-    c_t_corr = U_krylov_corr_dt * c_t ;
+    c_t_corr = U_krylov_corr_dt * c_t_corr ;
     
     % compute observables in the krylov subspace
     O_t(:,k+1) = O_krylov * c_t ;
 end
 
 % compute final state vector
-rho_t = krylov_basis * c_t ;
+rho_t = krylov_basis(:,1:dim_krylov) * c_t ;
 
 end
