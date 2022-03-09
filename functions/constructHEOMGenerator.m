@@ -18,15 +18,20 @@ if (nargin~=4)
         M_max_OBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_OBOs, heom_bath_info.lambda_OBOs, heom_bath_info.gamma_OBOs, heom_bath_info.beta) ;
         M_max_UBO = findMaxMjWeightedCutoffBO(heom_truncation_info.L_cut, heom_bath_info.Omega_UBOs, heom_bath_info.lambda_UBOs, heom_bath_info.gamma_UBOs, heom_bath_info.beta) ;
         M = max([M_max_debye,M_max_OBO,M_max_UBO]) ;
+    elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
+        lambda_baths = [heom_bath_info.lambda_Ds, heom_bath_info.lambda_OBOs, heom_bath_info.lambda_UBOs] ;
+        M = findMaxMj(heom_truncation_info.L_cut*lambda_baths, heom_bath_info.beta) ;
     end
 
     % get arrays the ado frequencies (nus) and coupling coefficents (cs)
     % for the debye, OBO and UBO baths
     nus = [] ;
     cs = [] ;
-    cbars = [] ;
+    cbars = [] ; 
+    lambdas = [] ;
     mode_info = struct() ;
     mode_info.M = M ;
+    
     if (numel(heom_bath_info.lambda_Ds)>0)
         [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
             heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
@@ -35,6 +40,8 @@ if (nargin~=4)
         cs = [cs,reshape(transpose(cs_array_debye),[1,n_debye])] ;
         cbars = [cbars,reshape(transpose(cs_array_debye),[1,n_debye])] ;
         mode_info.n_debye = n_debye ;
+        lambdas = [lambdas, reshape(repmat(heom_bath_info.lambda_Ds,[M+1,1]),[1,n_debye])] ;
+
     else
         mode_info.n_debye = 0 ;
     end
@@ -46,6 +53,7 @@ if (nargin~=4)
         cs = [cs,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
         cbars = [cbars,reshape(transpose(cs_array_OBO),[1,n_OBO])] ;
         mode_info.n_obo = n_OBO ;
+        lambdas = [lambdas, reshape(repmat(heom_bath_info.lambda_OBOs,[M+2,1]),[1,n_OBO])] ;
     else
         mode_info.n_obo = 0 ;
     end
@@ -57,10 +65,10 @@ if (nargin~=4)
         cs = [cs,reshape(transpose(cs_array_UBO),[1,n_UBO])] ;
         cbars = [cbars,reshape(transpose(cbars_array_UBO),[1,n_UBO])] ;
         mode_info.n_ubo = n_UBO ;
+        lambdas = [lambdas, reshape(repmat(heom_bath_info.lambda_UBOs,[M+2,1]),[1,n_UBO])] ;
     else
         mode_info.n_ubo = 0 ;
     end
-
     if (heom_truncation_info.truncation_method == "frequency cut-off")
         % construct the hierarchy structure with frequency truncation
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);
@@ -71,6 +79,9 @@ if (nargin~=4)
         % construct the hierarchy structure with coupling weighted depth
         % truncation
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
+    elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
+        % uses the lambda weighted cut-off
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyLambdaWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs,lambdas);
     end
 
     % create an array of the coupled mode indices
@@ -201,10 +212,11 @@ end
 if (heom_truncation_info.heom_termination == "markovian")
     % add a perturbative correction for the ados at which the hierarchy is terminated
     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
     n_term = size(terminator_ado_indices,1) ;
     for r = 1:n_term
         jk_term = terminator_modes(r) ;
-        j_term = ceil(jk_term/(M+2)) ;
+        j_term = terminator_bath_indices(r) ;
         J = terminator_ado_indices(r) ;
         n_jks = ado_indices(J,:) ;
         n_jk_term = n_jks(jk_term) ;
