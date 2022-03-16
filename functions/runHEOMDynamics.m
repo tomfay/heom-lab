@@ -8,6 +8,7 @@ heom_bath_info = getBathInformation(full_system) ;
 d_heom = size(L_heom,1) ;
 d_hilb = size(full_system.H_sys,1) ;
 d_liou = d_hilb * d_hilb ;
+d_heom/d_liou
 % construct the rho_0 for the full hierarchy
 rho_0_heom = zeros([d_heom,1]) ;
 rho_0_heom(1:d_liou) = convertToLiouvilleVector(heom_dynamics.rho_0_sys) ;

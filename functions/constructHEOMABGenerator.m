@@ -15,7 +15,7 @@ cbars = heom_structure.cbars  ;
 M = heom_structure.M ;
 cs_array_debye = heom_structure.cs_array_debye ;
 nus_array_debye = heom_structure.nus_array_debye ;
-
+mode_info = heom_structure.mode_info ;
 
 
 % get some dimensions of things for setting up the HEOM generator
@@ -112,10 +112,11 @@ end
 if (heom_truncation_info.heom_termination == "markovian")
     % add a perturbative correction for the ados at which the hierarchy is terminated
     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
     n_term = size(terminator_ado_indices,1) ;
     for r = 1:n_term
         jk_term = terminator_modes(r) ;
-        j_term = ceil(jk_term/(M+2)) ;
+        j_term = terminator_bath_indices(r) ;
         J = terminator_ado_indices(r) ;
         n_jks = ado_indices(J,:) ;
         n_jk_term = n_jks(jk_term) ;

@@ -20,7 +20,7 @@ if (nargin~=4)
         M = max([M_max_debye,M_max_OBO,M_max_UBO]) ;
     elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
         lambda_baths = [heom_bath_info.lambda_Ds, heom_bath_info.lambda_OBOs, heom_bath_info.lambda_UBOs] ;
-        M = findMaxMj(heom_truncation_info.L_cut*lambda_baths, heom_bath_info.beta) ;
+        M = findMaxMj(heom_truncation_info.L_cut*sqrt(lambda_baths./heom_bath_info.beta), heom_bath_info.beta) ;
     end
 
     % get arrays the ado frequencies (nus) and coupling coefficents (cs)
@@ -81,7 +81,7 @@ if (nargin~=4)
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyCouplingWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs) ;
     elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
         % uses the lambda weighted cut-off
-        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyLambdaWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs,lambdas);
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes] = generateHierarchyLambdaWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs,sqrt(lambdas/heom_bath_info.beta));
     end
 
     % create an array of the coupled mode indices
@@ -101,6 +101,7 @@ if (nargin~=4)
     heom_structure.M = M ;
     heom_structure.cs_array_debye = cs_array_debye ;
     heom_structure.nus_array_debye = nus_array_debye ;
+    heom_structure.mode_info = mode_info ;
 elseif (nargin==4)
     heom_structure = heom_structure_in ;
     ado_gammas = heom_structure.ado_gammas  ;
@@ -116,6 +117,7 @@ elseif (nargin==4)
     M = heom_structure.M ;
     cs_array_debye = heom_structure.cs_array_debye ;
     nus_array_debye = heom_structure.nus_array_debye ;
+    mode_info = heom_structure.mode_info ;
 end
 
 

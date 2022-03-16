@@ -12,24 +12,24 @@ J = 1.0e0 ;
 
 % set up explicit bath parameters
 lambda_D = 1e-1 ;
-omega_D = 2 ;
+omega_D = 0.25 ;
 beta = 1.0 ;
-lambda_AB = 10.0 ;
-omega_AB = 2 ;
+lambda_AB = 6.0 ;
+omega_AB = 0.25 ;
 Gamma_AB = 0.1 ;
-Delta_E_AB = 8 ;
+Delta_E_AB = 5 ;
 
 % dynamics information
-dt = 0.02e0 ;
-n_steps = 200000 ;
+dt = 0.01e0 ;
+n_steps = 400000 ;
 krylov_dim = 8 ;
-krylov_tol = 1e-12 ;
-Gamma_cut = 25.0 ;
+krylov_tol = 1e-11 ;
+Gamma_cut = 16.0 ;
 p = 2 ;
-L_cut = 40 ;
+L_cut = 16 ;
 
 % parameters for evaluating to AB correlation function
-t_max = sqrt((beta/lambda_AB)*log(1/1e-10)) ;
+t_max = sqrt((beta/lambda_AB)*log(1/1e-7)) ;
 n_t = 1000 ;
 n_modes = 512 ; % number of modes used to discretise the spectral density
 
@@ -74,15 +74,15 @@ heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
-% heom_dynamics.heom_truncation = struct() ;
-% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 heom_dynamics.heom_truncation = struct() ;
-heom_dynamics.heom_truncation.truncation_method = "coupling weighted cut-off" ;
-heom_dynamics.heom_truncation.L_cut = L_cut ;
-heom_dynamics.heom_truncation.p = p ;
+heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+% heom_dynamics.heom_truncation = struct() ;
+% heom_dynamics.heom_truncation.truncation_method = "coupling weighted cut-off" ;
+% heom_dynamics.heom_truncation.L_cut = L_cut ;
+% heom_dynamics.heom_truncation.p = p ;
+% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % details of the strongly coupled bath
 AB_coupling_info = struct() ;
@@ -95,8 +95,10 @@ AB_coupling_info.n_t = n_t ;
 AB_coupling_info.n_modes = n_modes ;
 % AB_coupling_info.method = "simplified" ;
 % AB_coupling_info.method = "include H_sys" ;
-% AB_coupling_info.method = "include H_sys NZ" ;
-AB_coupling_info.method = "full NZ" ;
+AB_coupling_info.method = "include H_sys NZ" ;
+% AB_coupling_info.method = "full NZ" ;
+% AB_coupling_info.method = "first-order phonon NZ" ;
+% AB_coupling_info.method = "first-order phonon NZ 2" ;
 AB_coupling_info.phonon_method = "none" ;
 
 % run the dynamics

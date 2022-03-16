@@ -25,7 +25,7 @@ end
 ts = linspace(0,AB_coupling_info.t_max,AB_coupling_info.n_t) ;
 % <exp(-i H_B t) exp(+i H_A t)>_A
 c_A_ts = calculateCorrelationFunction(weights,omegas,ts,AB_coupling_info.beta,AB_coupling_info.Delta_E_AB) ;
-
+% <exp(-i H_A t) exp(+i H_B t)>_B
 c_B_ts = calculateCorrelationFunction(weights,omegas,ts,AB_coupling_info.beta,-AB_coupling_info.Delta_E_AB) ;
 c_ts = [c_A_ts;c_B_ts] ;
 % get dimensions of the system spaces
@@ -135,7 +135,7 @@ elseif AB_coupling_info.method == "include H_sys NZ"
             - kron(P_An',conj(Gamma_E * (G_A(:,n) .* Gamma_E' )));
     end
     K_AA_liou = U_A' * K_AA_liou * U_A ;
-    
+
 
     K(1:d_heom_A,1:d_heom_A) = kron(id_ados,K_AA_liou) ;
     % K_BB term
@@ -148,7 +148,7 @@ elseif AB_coupling_info.method == "include H_sys NZ"
     end
     K_BB_liou = U_B' * K_BB_liou * U_B ;
     K((d_heom_A+1):(d_heom_A+d_heom_B),(d_heom_A+1):(d_heom_A+d_heom_B)) = kron(id_ados,K_BB_liou) ;
-     % K_BA term
+    % K_BA term
     K_BA_liou = zeros([d_liou_B,d_liou_A]) ;
     for n=1:d_hilb_A
         Gamma_E_n = zeros([d_hilb_A,d_hilb_B]) ;
@@ -158,7 +158,7 @@ elseif AB_coupling_info.method == "include H_sys NZ"
     end
     K_BA_liou = U_B' * K_BA_liou * U_A ;
     K((d_heom_A+1):(d_heom_A+d_heom_B),1:d_heom_A) = kron(id_ados,K_BA_liou) ;
-     % K_AB term
+    % K_AB term
     K_AB_liou = zeros([d_liou_A,d_liou_B]) ;
     for n=1:d_hilb_B
         Gamma_E_n = zeros([d_hilb_A,d_hilb_B]) ;
@@ -170,30 +170,30 @@ elseif AB_coupling_info.method == "include H_sys NZ"
 
     K_AB_liou = U_A' * K_AB_liou * U_B ;
     K(1:d_heom_A,(d_heom_A+1):(d_heom_A+d_heom_B)) = kron(id_ados,K_AB_liou) ;
-    
+
 elseif AB_coupling_info.method == "full NZ"
     % construct the coherence blocks of the heom liouvillian
     L_AB = constructHEOMABGenerator(H_sys_A,H_sys_B,V_As,V_Bs,heom_bath_info,heom_truncation_info,heom_structure_A) ;
     L_BA = constructHEOMABGenerator(H_sys_B,H_sys_A,V_Bs,V_As,heom_bath_info,heom_truncation_info,heom_structure_A) ;
-    
+
     % diagonalise the coherence blocks of the HEOM liouvillian
     [V_AB,Lambda_AB] = eig(full(L_AB),'vector') ;
-%     V_AB_inv = inv(V_AB) ;
+    %     V_AB_inv = inv(V_AB) ;
     V_AB_inv = V_AB\eye(d_hilb_A*d_hilb_B*n_ados) ;
-%     max(max(abs( V_AB*(Lambda_AB.*(V_AB_inv))-L_AB ))) 
-    
+    %     max(max(abs( V_AB*(Lambda_AB.*(V_AB_inv))-L_AB )))
+
     [V_BA,Lambda_BA] = eig(full(L_BA),'vector') ;
-%     V_AB_inv = inv(V_AB) ;
+    %     V_AB_inv = inv(V_AB) ;
     V_BA_inv = V_BA\eye(d_hilb_A*d_hilb_B*n_ados) ;
-%     max(max(abs( V_BA*(Lambda_BA.*(V_BA_inv))-L_BA ))) 
-    
+    %     max(max(abs( V_BA*(Lambda_BA.*(V_BA_inv))-L_BA )))
+
     % calculate some integrals
     g_A_AB = trapz(ts,conj(c_A_ts).*exp(Lambda_AB.*ts),2) ;
     g_A_BA = trapz(ts,c_A_ts.*exp(Lambda_BA.*ts),2) ;
-%     g_B_AB = trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2) ;
-%     g_B_BA = trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2) ;
-    g_B_AB = trapz(ts,conj(c_B_ts).*exp(Lambda_AB.*ts),2) ;
-    g_B_BA = trapz(ts,c_B_ts.*exp(Lambda_BA.*ts),2) ;
+    g_B_AB = trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2) ;
+    g_B_BA = trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2) ;
+    %     g_B_AB = trapz(ts,(c_B_ts).*exp(Lambda_AB.*ts),2) ;
+    %     g_B_BA = trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2) ;
 
     % construct some integrated effective propagators
     G_A_AB = V_AB * (g_A_AB.* V_AB_inv) ;
@@ -212,7 +212,7 @@ elseif AB_coupling_info.method == "full NZ"
     Gamma_R_AB = kron(id_ados,kron(id_hilb_A,transpose(Gamma'))) ;
 
     K(1:d_heom_A,1:d_heom_A) = -Gamma_L_BA * G_A_BA  * Gamma_L_AA  - Gamma_R_AB * G_A_AB * Gamma_R_AA ;
-    
+
     % construct the BB part
     Gamma_L_BB = kron(id_ados,kron(Gamma,id_hilb_B)) ;
     Gamma_L_AB = kron(id_ados,kron(Gamma',id_hilb_B)) ;
@@ -229,10 +229,120 @@ elseif AB_coupling_info.method == "full NZ"
     K(1:d_heom_A,(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
         Gamma_R_AB * G_B_AB * Gamma_L_BB  + Gamma_L_BA * G_B_BA * Gamma_R_BB ;
 
+elseif (AB_coupling_info.method == "first-order phonon NZ" || AB_coupling_info.method == "first-order phonon NZ 2")
+    % construct the coherence blocks of the heom liouvillian
+    L_phonon_AB = constructHEOMABGenerator(0*H_sys_A,0*H_sys_B,V_As,V_Bs,heom_bath_info,heom_truncation_info,heom_structure_A) ;
+    L_phonon_BA = constructHEOMABGenerator(0*H_sys_B,0*H_sys_A,V_Bs,V_As,heom_bath_info,heom_truncation_info,heom_structure_A) ;
+
+    % construct Gamma operators
+    Gamma = AB_coupling_info.coupling_matrix ;
+    Gamma_L_AA = kron(id_ados,kron(Gamma',id_hilb_A)) ;
+    Gamma_L_BA = kron(id_ados,kron(Gamma,id_hilb_A)) ;
+    Gamma_R_AA = kron(id_ados,kron(id_hilb_A,transpose(Gamma))) ;
+    Gamma_R_AB = kron(id_ados,kron(id_hilb_A,transpose(Gamma'))) ;
+    Gamma_L_BB = kron(id_ados,kron(Gamma,id_hilb_B)) ;
+    Gamma_L_AB = kron(id_ados,kron(Gamma',id_hilb_B)) ;
+    Gamma_R_BB = kron(id_ados,kron(id_hilb_B,transpose(Gamma'))) ;
+    Gamma_R_BA = kron(id_ados,kron(id_hilb_B,transpose(Gamma))) ;
+
+    % construct the L_sys operators acting on AB and BA spaces
+    L_sys_AB = -1.0i * kron(H_sys_A,id_hilb_B) +1.0i *kron(id_hilb_A,transpose(H_sys_B)) ;
+    L_sys_BA = -1.0i * kron(H_sys_B,id_hilb_A) +1.0i *kron(id_hilb_B,transpose(H_sys_A)) ;
+    [P_AB,Lambda_AB] = eig(full(L_sys_AB),'vector') ;
+    P_AB_inv = P_AB\eye(d_hilb_A*d_hilb_B) ;
+    [P_BA,Lambda_BA] = eig(full(L_sys_BA),'vector') ;
+    P_BA_inv = P_BA\eye(d_hilb_A*d_hilb_B) ;
+    Pi_AB = kron(id_ados,P_AB) ;
+    Pi_AB_inv = kron(id_ados,P_AB_inv) ;
+    Pi_BA = kron(id_ados,P_BA) ;
+    Pi_BA_inv = kron(id_ados,P_BA_inv) ;
+
+    % construct some fourier transforms
+    if (AB_coupling_info.method == "first-order phonon NZ")
+        g_A_AB = repmat(trapz(ts,conj(c_A_ts).*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+        g_A_BA = repmat(trapz(ts,c_A_ts.*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+        g_B_AB = repmat(trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+        g_B_BA = repmat(trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+        g_A_AB_1 = repmat(trapz(ts,ts.*conj(c_A_ts).*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+        g_A_BA_1 = repmat(trapz(ts,ts.*(c_A_ts).*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+        g_B_AB_1 = repmat(trapz(ts,ts.*c_B_ts.*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+        g_B_BA_1 = repmat(trapz(ts,ts.*conj(c_B_ts).*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+        Lambda_AB = repmat(Lambda_AB,[n_ados,1]) ;
+        Lambda_BA = repmat(Lambda_BA,[n_ados,1]) ;
+    elseif (AB_coupling_info.method == "first-order phonon NZ 2")
+        Lambda_AB = repmat(Lambda_AB,[n_ados,1]) - kron(heom_structure.ado_gammas,ones([d_hilb_A *d_hilb_B]));
+        Lambda_BA = repmat(Lambda_BA,[n_ados,1]) ;
+        g_A_AB = repmat(trapz(ts,conj(c_A_ts).*exp(Lambda_AB.*ts),2),[1,1]) ;
+        g_A_BA = repmat(trapz(ts,c_A_ts.*exp(Lambda_BA.*ts),2),[1,1]) ;
+        g_B_AB = repmat(trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2),[1,1]) ;
+        g_B_BA = repmat(trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2),[1,1]) ;
+        g_A_AB_1 = repmat(trapz(ts,ts.*conj(c_A_ts).*exp(Lambda_AB.*ts),2),[1,1]) ;
+        g_A_BA_1 = repmat(trapz(ts,ts.*(c_A_ts).*exp(Lambda_BA.*ts),2),[1,1]) ;
+        g_B_AB_1 = repmat(trapz(ts,ts.*c_B_ts.*exp(Lambda_AB.*ts),2),[1,1]) ;
+        g_B_BA_1 = repmat(trapz(ts,ts.*conj(c_B_ts).*exp(Lambda_BA.*ts),2),[1,1]) ;
+    end
+
+    % K_AA term
+    G_A_BA_0 = Pi_BA * (repmat(g_A_BA,[1,1]).* Pi_BA_inv) ;
+    G_A_AB_0 = Pi_AB * (repmat(g_A_AB,[1,1]).* Pi_AB_inv) ;
+    j_A_BA = ((-repmat(g_A_BA,[n_ados,1]) + transpose(repmat(g_A_BA,[n_ados,1])))./(-repmat(Lambda_BA,[n_ados,1])+transpose(repmat(Lambda_BA,[n_ados,1])))) ;
+    [rows,cols] = find(isnan(j_A_BA)) ;
+    for r = 1:numel(rows)
+        j_A_BA(rows(r),cols(r)) = g_A_BA_1(rows(r)) ;
+    end
+    %     j_A_BA(isnan(j_A_BA)) = g_A_BA_1(isnan(j_A_BA)) ;
+    j_A_AB = ((-repmat(g_A_AB,[1,1]) + transpose(repmat(g_A_AB,[1,1])))./(-repmat(Lambda_AB,[1,1])+transpose(repmat(Lambda_AB,[1,1])))) ;
+    [rows,cols] = find(isnan(j_A_AB)) ;
+    for r = 1:numel(rows)
+        j_A_AB(rows(r),cols(r)) = g_A_AB_1(rows(r)) ;
+    end
+    %     j_A_AB(isnan(j_A_AB)) = g_A_AB_1(isnan(j_A_AB));
+    %     G_A_BA_1 = Pi_BA*((Pi_BA_inv * L_phonon_BA * Pi_BA).* ((repmat(g_A_BA,[n_ados,1]) - transpose(repmat(g_A_BA,[n_ados,1])))./(-repmat(Lambda_BA,[n_ados,1])+transpose(repmat(Lambda_BA,[n_ados,1])))))*Pi_BA_inv ;
+    %     G_A_AB_1 = Pi_AB*((Pi_AB_inv * L_phonon_AB * Pi_AB).* ((repmat(g_A_AB,[n_ados,1]) - transpose(repmat(g_A_AB,[n_ados,1])))./(-repmat(Lambda_AB,[n_ados,1])+transpose(repmat(Lambda_AB,[n_ados,1])))))*Pi_AB_inv ;
+    %     G_A_BA_1 = L_phonon_BA *g_A_BA_1 ;
+    %     G_A_AB_1 = L_phonon_AB *g_A_AB_1 ;
+    G_A_BA_1 = Pi_BA*((Pi_BA_inv * L_phonon_BA * Pi_BA).* j_A_BA)*Pi_BA_inv ;
+    G_A_AB_1 = Pi_AB*((Pi_AB_inv * L_phonon_AB * Pi_AB).* j_A_AB)*Pi_AB_inv ;
+
+
+    K(1:d_heom_A,1:d_heom_A) = -Gamma_L_BA * (G_A_BA_0+G_A_BA_1)  * Gamma_L_AA  - Gamma_R_AB * (G_A_AB_0 + G_A_AB_1) * Gamma_R_AA ;
+
+    % construct BA part
+    K((d_heom_A+1):(d_heom_A+d_heom_B),1:d_heom_A) = ...
+        Gamma_R_BA * (G_A_BA_0+G_A_BA_1)  * Gamma_L_AA  + Gamma_L_AB * (G_A_AB_0+G_A_BA_1) * Gamma_R_AA ;
+
+    % K_BB term
+    G_B_BA_0 = Pi_BA * (repmat(g_B_BA,[1,1]).* Pi_BA_inv) ;
+    G_B_AB_0 = Pi_AB * (repmat(g_B_AB,[1,1]).* Pi_AB_inv) ;
+    j_B_BA = ((-repmat(g_B_BA,[1,1]) + transpose(repmat(g_B_BA,[1,1])))./(-repmat(Lambda_BA,[1,1])+transpose(repmat(Lambda_BA,[1,1])))) ;
+    [rows,cols] = find(isnan(j_B_BA)) ;
+    for r = 1:numel(rows)
+        j_B_BA(rows(r),cols(r)) = g_B_BA_1(rows(r)) ;
+    end
+    %     j_B_BA(isnan(j_B_BA)) = g_B_BA_1(isnan(j_B_BA)) ;
+    j_B_AB = ((-repmat(g_B_AB,[1,1]) + transpose(repmat(g_B_AB,[1,1])))./(-repmat(Lambda_AB,[1,1])+transpose(repmat(Lambda_AB,[1,1])))) ;
+    [rows,cols] = find(isnan(j_B_AB)) ;
+    for r = 1:numel(rows)
+        j_B_AB(rows(r),cols(r)) = g_B_AB_1(rows(r)) ;
+    end
+    %     j_B_AB(isnan(j_B_AB)) = g_B_AB_1(isnan(j_B_AB));
+    %     G_B_BA_1 = Pi_BA*((Pi_BA_inv * L_phonon_BA * Pi_BA).* ((repmat(g_B_BA,[n_ados,1]) - transpose(repmat(g_B_BA,[n_ados,1])))./(-repmat(Lambda_BA,[n_ados,1])+transpose(repmat(Lambda_BA,[n_ados,1])))))*Pi_BA_inv ;
+    %     G_B_AB_1 = Pi_AB*((Pi_AB_inv * L_phonon_AB * Pi_AB).* ((repmat(g_B_AB,[n_ados,1]) - transpose(repmat(g_B_AB,[n_ados,1])))./(-repmat(Lambda_AB,[n_ados,1])+transpose(repmat(Lambda_AB,[n_ados,1])))))*Pi_AB_inv ;
+    %     G_B_BA_1 = L_phonon_BA *g_B_BA_1 ;
+    %     G_B_AB_1 = L_phonon_AB *g_B_AB_1 ;
+    G_B_BA_1 = Pi_BA*((Pi_BA_inv * L_phonon_BA * Pi_BA).* j_B_BA)*Pi_BA_inv ;
+    G_B_AB_1 = Pi_AB*((Pi_AB_inv * L_phonon_AB * Pi_AB).* j_B_AB)*Pi_AB_inv ;
+
+    K((d_heom_A+1):(d_heom_A+d_heom_B),(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
+        -Gamma_L_AB * (G_B_AB_0+G_B_AB_1) * Gamma_L_BB  - Gamma_R_BA * (G_B_BA_0+G_B_BA_1) * Gamma_R_BB;
+
+    % construct the AB part
+    K(1:d_heom_A,(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
+        Gamma_R_AB * (G_B_AB_0+G_B_AB_1) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0+G_B_BA_1) * Gamma_R_BB ;
 end
 
 if AB_coupling_info.phonon_method == "simplified"
-    % first the 
+    % first the
 end
 
 
