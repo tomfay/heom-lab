@@ -192,7 +192,6 @@ for r = 1:n_couplings
     % need to fix getting the bath index!!!!
     %     j_coup = ceil(jk_coup/(M+1)) ; % get the bath index that is coupling J & K
     j_coup = coupled_bath_indices(r) ;
-    k_coup = jk_coup - j_coup*(M+1) ; % Matsubara mode index, k=0 is non-Matsubara term
     J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
     K_block = ((K-1)*(d_liou)+1):(K*d_liou) ;
     n_jk_coup = ado_indices(K,jk_coup) ;
