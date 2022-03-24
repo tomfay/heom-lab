@@ -16,7 +16,7 @@ d_liou_A = d_hilb_A * d_hilb_A ;
 d_hilb_B = size(full_system.H_sys_B,1) ;
 d_liou_B = d_hilb_B * d_hilb_B ;
 d_heom = d_heom_A + d_heom_B ;
-
+d_heom_A/d_liou_A 
 L = sparse([],[],[],d_heom,d_heom) ;
 A_inds = 1:d_heom_A ;
 B_inds = (d_heom_A+1):d_heom ;
