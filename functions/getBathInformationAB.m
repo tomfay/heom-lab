@@ -10,12 +10,13 @@ lambda_UBOs = [] ; Omega_UBOs = [] ; gamma_UBOs = [] ;
 V_As = {} ;
 V_Bs = {} ;
 
+
 for i = 1:n_baths
     if (baths{i}.spectral_density == "debye")
         lambda_Ds = [lambda_Ds,baths{i}.lambda_D] ;
         omega_Ds = [omega_Ds,baths{i}.omega_D] ;
-        V_As = [V_As,baths{i}.V_A] ; 
-        V_Bs = [V_Bs,baths{i}.V_B] ; 
+        V_As = [V_As,{baths{i}.V_A}] ; 
+        V_Bs = [V_Bs,{baths{i}.V_B}] ; 
     end
 end
 
@@ -24,8 +25,8 @@ for i = 1:n_baths
         lambda_OBOs = [lambda_OBOs,baths{i}.lambda] ;
         Omega_OBOs = [Omega_OBOs,baths{i}.Omega] ;
         gamma_OBOs = [gamma_OBOs,baths{i}.gamma] ;
-        V_As = [V_As,baths{i}.V_A] ; 
-        V_Bs = [V_Bs,baths{i}.V_B] ; 
+        V_As = [V_As,{baths{i}.V_A}] ; 
+        V_Bs = [V_Bs,{baths{i}.V_B}] ; 
     end
 end
 
@@ -34,8 +35,8 @@ for i = 1:n_baths
         lambda_UBOs = [lambda_UBOs,baths{i}.lambda] ;
         Omega_UBOs = [Omega_UBOs,baths{i}.Omega] ;
         gamma_UBOs = [gamma_UBOs,baths{i}.gamma] ;
-        V_As = [V_As,baths{i}.V_A] ; 
-        V_Bs = [V_Bs,baths{i}.V_B] ;  
+        V_As = [V_As,{baths{i}.V_A}] ; 
+        V_Bs = [V_Bs,{baths{i}.V_B}] ;  
     end
 end
 
@@ -55,5 +56,6 @@ heom_bath_info_A = heom_bath_info ;
 heom_bath_info_A.Vs = V_As ;
 heom_bath_info_B = heom_bath_info ;
 heom_bath_info_B.Vs = V_Bs ;
+
 
 end

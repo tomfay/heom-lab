@@ -1,0 +1,34 @@
+function [O_t,t,L,junk] = runHEOMSCPTDynamics(full_system,heom_dynamics)
+% convert the bath info into a more use-able form - these are the
+% explicitly treated baths
+heom_bath_info_blocks = getBathInformationSCPT(full_system) ;
+% get the number of SC blocks
+n_blocks = numel(full_system.H_sys) ;
+% construct the HEOM dynamics genrators for the different blocks
+L_blocks = cell([n_blocks,1]) ; heom_structure_blocks = cell([n_blocks,1]) ;
+for k = 1:n_blocks
+    [L_block,heom_structure_block] = constructHEOMGenerator(full_system.H_sys{k},heom_bath_info_blocks{k}, ...
+        heom_dynamics.heom_truncation) ;
+    L_blocks{k} = L_block ;
+    heom_structure_blocks{k} = heom_structure_block ;
+end
+% construct the diagonal elements of the generator for the HEOMSCPT object
+n_ados = [] ;
+d_heoms = [] ;
+d_lious = [] ;
+block_indices = {};
+for k = 1:n_blocks 
+    n_ados = [n_ados,heom_structure_blocks{k}.n_ados] ;
+    d_heoms = [d_heoms,heom_structure_blocks{k}.d_heom] ;
+    d_lious = [d_lious,heom_structure_blocks{k}.d_liou] ;
+    block_indices{k} = (1+sum(d_heoms(1:end-1))):sum(d_heoms(1:end)) ;
+end
+d = sum(d_heoms) ;
+L = sparse([],[],[],d,d) ;
+for k = 1:n_blocks
+    L(block_indices{k},block_indices{k}) = L_blocks{k} ;
+end
+
+% next add the markovian rate matr
+
+end

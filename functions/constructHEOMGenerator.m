@@ -183,6 +183,9 @@ heom_structure.V = V ;
 heom_structure.V_comm = V_comm ;
 heom_structure.V_L = V_L ;
 heom_structure.V_R = V_R ;
+heom_structure.d_heom = d_heom ;
+heom_structure.n_ados = n_ados ;
+heom_structure.d_liou = d_liou ;
 
 % construct the HEOM generator
 for r = 1:n_couplings

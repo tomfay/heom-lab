@@ -54,5 +54,5 @@ if (heom_dynamics.integrator.method == 'SIA')
         integrator.n_steps,integrator.dt,O,integrator.krylov_dim,...
         integrator.krylov_tol) ;
 end
-junk = K ;
+junk = {K,c_ts,ts} ;
 end
