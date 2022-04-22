@@ -1,4 +1,4 @@
-function [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,block_coupling_info,heom_truncation_info)
+    function [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,block_coupling_info,heom_truncation_info)
 
 % get the number of coupling terms between baths
 n_couplings = size(full_system.block_coupling.coupled_blocks,1) ;
@@ -8,11 +8,13 @@ n_baths = []  ;
 cs = {} ;
 omegas = {} ;
 weights = {} ;
+lambda_hiT = {} ;
 for r = 1:n_couplings
     n_baths(r) = numel(full_system.block_coupling.coupling_baths{r}) ;
     cs{r} = [] ;
     omegas{r} = [] ;
     weights{r} = [] ;
+    lambda_hiT{r} = 0.0 ;
     for n = 1:n_baths(r)
         % construct the density of states for the spectral density
         bath_info = full_system.block_coupling.coupling_baths{r}{n} ;
@@ -26,6 +28,8 @@ for r = 1:n_couplings
             omegas{r}  = [omegas{r} , omegas_bath] ;
             cs{r} = [cs{r} , cs_bath] ;
             weights{r} = [weights{r},weights_bath * lambda_D] ;
+        elseif (bath_info.spectral_density == "high temperature")
+            lambda_hiT{r} = bath_info.lambda ;
         else
             % TODO: implement classical contribution to these correlation
             % functions.
@@ -46,10 +50,21 @@ for r = 1:n_couplings
     n_A = coupled_blocks(r,1) ;
     n_B = coupled_blocks(r,2) ;
     Delta_E = E_blocks(n_A) - E_blocks(n_B) ;
-    % <exp(-i H_B t) exp(+i H_A t)>_A
-    c_A_ts = calculateCorrelationFunction(weights{r},omegas{r},t,full_system.beta,Delta_E) ;
-    % <exp(-i H_A t) exp(+i H_B t)>_B
-    c_B_ts = calculateCorrelationFunction(weights{r},omegas{r},t,full_system.beta,-Delta_E) ;
+
+    if (isempty(weights{r}))
+        % <exp(-i H_B t) exp(+i H_A t)>_0
+        c_A_ts = exp(1.0i * (Delta_E - lambda_hiT{r})*t - (lambda_hiT{r}/full_system.beta)*(t.*t)) ;
+        % <exp(-i H_A t) exp(+i H_B t)>_B
+        c_B_ts = exp(1.0i * (-Delta_E - lambda_hiT{r})*t - (lambda_hiT{r}/full_system.beta)*(t.*t)) ;
+    else
+        % <exp(-i H_B t) exp(+i H_A t)>_0
+        c_A_ts = calculateCorrelationFunction(weights{r},omegas{r},t,full_system.beta,0)...
+            .* exp(1.0i * (Delta_E - lambda_hiT{r})*t - (lambda_hiT{r}/full_system.beta)*(t.*t)) ;
+        % <exp(-i H_A t) exp(+i H_B t)>_B
+        c_B_ts = calculateCorrelationFunction(weights{r},omegas{r},t,full_system.beta,0)...
+            .*exp(1.0i * (-Delta_E - lambda_hiT{r})*t - (lambda_hiT{r}/full_system.beta)*(t.*t)) ;
+    end
+
     c_ts_r = [c_A_ts;c_B_ts] ;
     c_ts{r} = c_ts_r ;
     ts{r} = t ;
@@ -71,7 +86,9 @@ for k = 1:n_blocks
 end
 d = sum(d_heoms) ;
 id_ados = speye(n_ados_blocks(1)) ;
+fprintf('n_ado = %d\n',n_ados_blocks(1)) ;
 K = sparse([],[],[],d,d) ;
+
 
 % add in the coupling terms to the superoperator
 if block_coupling_info.method == "truncated NZ"
@@ -186,12 +203,22 @@ if block_coupling_info.method == "truncated NZ"
         Pi_BA = kron(id_ados,P_BA) ;
         Pi_BA_inv = kron(id_ados,P_BA_inv) ;
         % construct some fourier transforms
-        g_A_AB_0 = repmat(trapz(t,conj(c_A_ts).*exp(Lambda_AB.*t),2),[n_ados,1]) ;
-        g_A_BA_0 = repmat(trapz(t,c_A_ts.*exp(Lambda_BA.*t),2),[n_ados,1]) ;
-        g_B_AB_0 = repmat(trapz(t,c_B_ts.*exp(Lambda_AB.*t),2),[n_ados,1]) ;
-        g_B_BA_0 = repmat(trapz(t,conj(c_B_ts).*exp(Lambda_BA.*t),2),[n_ados,1]) ;
-        Lambda_AB = repmat(Lambda_AB,[n_ados,1]) ;
-        Lambda_BA = repmat(Lambda_BA,[n_ados,1]) ;
+%         n_rep = n_ados ;
+%         g_A_AB_0 = repmat(trapz(t,conj(c_A_ts).*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+%         g_A_BA_0 = repmat(trapz(t,c_A_ts.*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+%         g_B_AB_0 = repmat(trapz(t,c_B_ts.*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+%         g_B_BA_0 = repmat(trapz(t,conj(c_B_ts).*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+%         Lambda_AB = repmat(Lambda_AB,[n_rep,1]) ;
+%         Lambda_BA = repmat(Lambda_BA,[n_rep,1]) ;
+
+        n_rep = 1 ;
+        Lambda_AB = kron(ones([n_ados,1]),Lambda_AB) - kron((heom_structure_blocks{n_A}.ado_gammas),ones([d_AB,1]));
+        Lambda_BA = kron(ones([n_ados,1]),Lambda_BA) - kron((heom_structure_blocks{n_A}.ado_gammas),ones([d_AB,1]));
+        g_A_AB_0 = repmat(trapz(t,conj(c_A_ts).*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+        g_A_BA_0 = repmat(trapz(t,c_A_ts.*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+        g_B_AB_0 = repmat(trapz(t,c_B_ts.*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+        g_B_BA_0 = repmat(trapz(t,conj(c_B_ts).*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+
         % find the indices of the AB ados in the complementary space
         inds_comp = 1:d_heom_AB ;
         is_trunc = ismember(inds_comp,inds_trunc) ;
@@ -201,10 +228,10 @@ if block_coupling_info.method == "truncated NZ"
         g_B_AB_0(is_trunc) = 0 ;
         g_B_BA_0(is_trunc) = 0 ;
         % construct the remaining portion on the operator
-        G_A_BA_0 = Pi_BA * (repmat(g_A_BA_0,[1,1]).* Pi_BA_inv) ;
-        G_A_AB_0 = Pi_AB * (repmat(g_A_AB_0,[1,1]).* Pi_AB_inv) ;
-        G_B_BA_0 = Pi_BA * (repmat(g_B_BA_0,[1,1]).* Pi_BA_inv) ;
-        G_B_AB_0 = Pi_AB * (repmat(g_B_AB_0,[1,1]).* Pi_AB_inv) ;
+        G_A_BA_0 = Pi_BA * ((repmat(g_A_BA_0,[1,1]).* Pi_BA_inv)) ;
+        G_A_AB_0 = Pi_AB * ((repmat(g_A_AB_0,[1,1]).* Pi_AB_inv)) ;
+        G_B_BA_0 = Pi_BA * ((repmat(g_B_BA_0,[1,1]).* Pi_BA_inv)) ;
+        G_B_AB_0 = Pi_AB * ((repmat(g_B_AB_0,[1,1]).* Pi_AB_inv)) ;
 
         % construct Gamma operators
         Gamma = full_system.block_coupling.coupling_matrices{r} ;
@@ -224,7 +251,7 @@ if block_coupling_info.method == "truncated NZ"
             - Gamma_L_AB * (G_B_AB_0) * Gamma_L_BB  - Gamma_R_BA * (G_B_BA_0) * Gamma_R_BB;
         % construct the AB part
         K(block_indices{n_A},block_indices{n_B}) = K(block_indices{n_A},block_indices{n_B}) ...
-             + Gamma_R_AB * (G_B_AB_0) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0) * Gamma_R_BB ;
+            + Gamma_R_AB * (G_B_AB_0) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0) * Gamma_R_BB ;
         % AA part
         K(block_indices{n_A},block_indices{n_A}) = K(block_indices{n_A},block_indices{n_A}) ...
             - Gamma_L_BA * (G_A_BA_0)  * Gamma_L_AA  - Gamma_R_AB * (G_A_AB_0) * Gamma_R_AA ;
@@ -242,7 +269,7 @@ if block_coupling_info.method == "truncated NZ"
     end
 
 end
-
+drawnow('update')
 scpt_junk = {ts,c_ts} ;
 
 
