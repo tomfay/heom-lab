@@ -27,11 +27,11 @@ if (nargin~=4)
     % for the debye, OBO and UBO baths
     nus = [] ;
     cs = [] ;
-    cbars = [] ; 
+    cbars = [] ;
     lambdas = [] ;
     mode_info = struct() ;
     mode_info.M = M ;
-    
+
     if (numel(heom_bath_info.lambda_Ds)>0)
         [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
             heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
@@ -170,9 +170,105 @@ if (heom_truncation_info.heom_termination == "markovian" )
         R_j = sum(calculateCkBOs(heom_bath_info.gamma_UBOs(j),heom_bath_info.Omega_UBOs(j),beta,heom_bath_info.lambda_UBOs(j),ks)) ;
         Xi = Xi - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
     end
+    Xi = kron(id_ados,Xi) ;
+elseif (heom_truncation_info.heom_termination == "NZ2")
+    k_max = heom_truncation_info.termination_k_max ;
+    % get the eigenvalues and eigenvectors of the system liouvillian
+    [Pi_sys,lambda_sys] = eig(full(L_sys),'vector') ;
+%     lambda_sys = 0*lambda_sys ;
+    Pi_sys_inv = inv(Pi_sys) ;
+    cs_term = {} ;
+    cbars_term = {} ;
+    nus_term = {} ;
+    V_comm_Pi_sys = {} ;
+    Pi_sys_inv_V_R = {} ;
+    Pi_sys_inv_V_L = {} ;
+    if (numel(heom_bath_info.lambda_Ds)>0)
+        [nus_array_debye_term,cs_array_debye_term] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
+            heom_bath_info.lambda_Ds,heom_bath_info.beta,k_max) ;
+        n_debye_term = (k_max-M)*n_debye_baths ;
+        mode_info.n_debye_term = n_debye_term ;
+        for j = 1:n_debye_baths
+            j_bath = j;
+            nus_term{j_bath} = reshape(transpose(nus_array_debye_term(j,(M+2):end)),[1,(k_max-M)]) ;
+            cs_term{j_bath} = reshape(transpose(cs_array_debye_term(j,(M+2):end)),[1,(k_max-M)]) ;
+            cbars_term{j_bath} = reshape(transpose(cs_array_debye_term(j,(M+2):end)),[1,(k_max-M)]) ;
+        end
+    else
+        mode_info.n_debye_term = 0 ;
+    end
+    if (numel(heom_bath_info.lambda_OBOs)>0)
+        [nus_array_OBO_term,cs_array_OBO_term] = generateNusAndCsOBO(heom_bath_info.gamma_OBOs,...
+            heom_bath_info.lambda_OBOs,heom_bath_info.Omega_OBOs,heom_bath_info.beta,k_max) ;
+        n_OBO_term = (k_max-M)*n_OBO_baths ;
+        mode_info.n_obo_term = n_OBO_term ;
+        for j = 1:n_OBO_baths
+            j_bath = j+n_debye_baths ;
+            nus_term{j_bath} = reshape(transpose(nus_array_OBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+            cs_term{j_bath} = reshape(transpose(cs_array_OBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+            cbars_term{j_bath} = reshape(transpose(cs_array_OBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+        end
+
+
+    else
+        mode_info.n_obo_term = 0 ;
+    end
+    if (numel(heom_bath_info.lambda_UBOs)>0)
+        [nus_array_UBO_term,cs_array_UBO_term,cbars_array_UBO_term] = generateNusAndCsUBO(heom_bath_info.gamma_UBOs,...
+            heom_bath_info.lambda_UBOs,heom_bath_info.Omega_UBOs,heom_bath_info.beta,k_max) ;
+        n_UBO_term = (k_max-M)*n_UBO_baths ;
+        mode_info.n_ubo_term = n_UBO_term ;
+        for j = 1:n_UBO_baths
+            j_bath = j+n_debye_baths+n_OBO_baths ;
+            nus_term{j_bath} = reshape(transpose(nus_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+            cs_term{j_bath} = reshape(transpose(cs_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+            cbars_term{j_bath} = reshape(transpose(cbars_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+        end
+    else
+        mode_info.n_ubo_term = 0 ;
+    end
+    n_NZ2_term = mode_info.n_debye_term + mode_info.n_obo_term + mode_info.n_ubo_term ;
+
+    for j = 1:n_baths
+        V_comm_Pi_sys{j} = V_comm{j} * Pi_sys ;
+        Pi_sys_inv_V_R{j} = Pi_sys_inv * V_R{j} ;
+        Pi_sys_inv_V_L{j} = Pi_sys_inv * V_L{j} ;
+    end
+    % create empty Xi
+    Xi = sparse([],[],[],d_heom,d_heom,n_ados*d_liou*d_liou) ;
+    for J = 1:n_ados
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+        for j =1:n_baths
+            n_jks_term = zeros([1,k_max-M]) ;
+            Xi(J_block,J_block) = Xi(J_block,J_block) ...
+                - V_comm_Pi_sys{j} * ((sum(((n_jks_term+1).*cs_term{j})./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_L{j})...
+                - (sum(((n_jks_term+1).*conj(cbars_term{j}))./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_R{j}));
+        end
+    end
+    % use the standard Markovian approximation for all modes with k>k_max ;
+    Xi_markov = zeros([d_liou,d_liou]) ;
+    for j = 1:n_debye_baths
+        R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) ...
+            - sum([cs_array_debye(j,2:end),cs_term{j}]./[nus_array_debye(j,2:end),nus_term{j}]) ;
+        Xi_markov = Xi_markov - R_j * V_comm{j}*V_comm{j} ;
+    end
+    for j = 1:n_OBO_baths
+        j_OBO = j + n_debye_baths ;
+        ks = (k_max+1):1:max([20*M,100]) ;
+        R_j = sum(calculateCkBOs(heom_bath_info.gamma_OBOs(j),heom_bath_info.Omega_OBOs(j),beta,heom_bath_info.lambda_OBOs(j),ks)) ;
+        Xi_markov = Xi_markov - R_j * V_comm{j_OBO}*V_comm{j_OBO} ;
+    end
+    for j = 1:n_UBO_baths
+        j_UBO = j + n_debye_baths + n_OBO_baths ;
+        ks = (k_max+1):1:max([20*M,100]) ;
+        R_j = sum(calculateCkBOs(heom_bath_info.gamma_UBOs(j),heom_bath_info.Omega_UBOs(j),beta,heom_bath_info.lambda_UBOs(j),ks)) ;
+        Xi_markov = Xi_markov - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
+    end
+    Xi = Xi + kron(id_ados,Xi_markov) ;
+    
 end
 % add the free system evolution term to the HEOM generator
-L_heom = kron(id_ados,L_sys+Xi) ;
+L_heom = kron(id_ados,L_sys)+Xi ;
 
 % add the decay terms -sum_jk n_jk nu_jk
 L_heom = L_heom - kron(spdiags([ado_gammas],[0],n_ados,n_ados),id_liou) ;
@@ -229,7 +325,9 @@ if (heom_truncation_info.heom_termination == "markovian")
         J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
         n_jks_term = n_jks ;
         n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
-        L_heom(J_block,J_block) = L_heom(J_block,J_block) -(1.0i/(ado_gammas(J)+nus(jk_term))) * V_comm{j_term}*((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
+            -(1.0i/(ado_gammas(J)+nus(jk_term))) * V_comm{j_term}*...
+            ((-1.0i*c_jk_term*(n_jk_term+1)) * V_L{j_term} ...
             + (1.0i*conj(cbar_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
         %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -(1.0i/sum(nus.*n_jks_term)) * V_comm{j_term}*((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
         %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
@@ -238,6 +336,27 @@ if (heom_truncation_info.heom_termination == "markovian")
         %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -...
         %         (1.0i) * V_comm{j_term}*((-L_sys-Xi+(ado_gammas(J)+nus(jk_term))*id_liou)\((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
         %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} )) ;
+    end
+elseif (heom_truncation_info.heom_termination == "NZ2")
+        % add a perturbative correction for the ados at which the hierarchy is terminated
+    [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    n_term = size(terminator_ado_indices,1) ;
+    for r = 1:n_term
+        jk_term = terminator_modes(r) ;
+        j_term = terminator_bath_indices(r) ;
+        J = terminator_ado_indices(r) ;
+        n_jks = ado_indices(J,:) ;
+        n_jk_term = n_jks(jk_term) ;
+        c_jk_term = cs(jk_term) ;
+        cbar_jk_term = cbars(jk_term) ;
+        nu_jk_term = nus(jk_term) ;
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+        n_jks_term = n_jks ;
+        n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
+                - V_comm_Pi_sys{j_term} * (((((n_jk_term+1).*c_jk_term)./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_L{j_term})...
+                - ((((n_jk_term+1).*conj(cbar_jk_term))./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_R{j_term}));
     end
 end
 end
