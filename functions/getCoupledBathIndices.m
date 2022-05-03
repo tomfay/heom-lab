@@ -7,13 +7,14 @@ n_ubo = mode_info.n_ubo ;
 n_obo = mode_info.n_obo ;
 n_bo = n_ubo + n_obo ;
 M = mode_info.M ;
-debye_index_max = (M+1)*n_debye ;
+debye_index_max = n_debye ;
+n_debye_baths = n_debye / (M+1) ;
 for n = 1:n_couplings
     jk_index = coupled_mode_indices(n) ;
     if (jk_index <= debye_index_max)
         coupled_bath_indices(n) = ceil(jk_index/(M+1)) ;
     else
-        coupled_bath_indices(n) = n_debye + ceil((jk_index - n_debye)/(M+2)) ;
+        coupled_bath_indices(n) = n_debye_baths + ceil((jk_index - n_debye)/(M+2)) ;
     end
 end
 
