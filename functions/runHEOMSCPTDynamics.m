@@ -33,6 +33,13 @@ end
 [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,heom_dynamics.block_coupling,heom_dynamics.heom_truncation) ;
 L = L + K ;
 
+% add the incoherent processes term if it is specfiied
+if isfield(full_system,'incoh_processes')
+    K_incoh = constructIncoherentRateOperator(full_system.incoh_processes,n_ados,d_lious) ;
+    L = L + K_incoh ;
+end
+
+
 % construct the rho_0 for the full hierarchy
 rho_0_heom = zeros([d,1]) ;
 d_start = 0 ;
