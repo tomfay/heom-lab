@@ -6,11 +6,11 @@
 % Parameters for the problem
 % system hamiltonian parameters
 epsilon = 1.0 ;
-Delta = 2.0 ;
+Delta = 0.5 ;
 % bath parameters
 beta = 1.0 ;
 % debye bath parameters
-lambda_D = 0.0 ;
+lambda_D = 0.1 ;
 omega_D = 1.0 ;
 % UBO bath parameters Omega > gamma/2
 Omega_UBO = 1.0 ;
@@ -19,10 +19,10 @@ lambda_UBO = 0.5 ;
 
 % dynamics information
 dt = 1e-2 ;
-n_steps = 1000 ;
+n_steps = 2000 ;
 krylov_dim = 8 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 20.0 ;
+Gamma_cut = 16.0 ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -62,6 +62,8 @@ heom_dynamics.heom_truncation = struct ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
+heom_dynamics.heom_truncation.termination_k_max = 20 ;
 
 % what system observables should be returned
 heom_dynamics.observables = struct ;

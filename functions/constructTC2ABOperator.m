@@ -647,12 +647,161 @@ elseif (AB_coupling_info.method == "second-order phonon NZ" || AB_coupling_info.
     K(1:d_heom_A,(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
         Gamma_R_AB * (G_B_AB_0+G_B_AB_1+G_B_AB_2) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0+G_B_BA_1+G_B_BA_2) * Gamma_R_BB ;
 
+elseif (AB_coupling_info.method == "truncated NZ")
+    % get the indices of the AB states included in the truncated NZ space
+    ado_inds = find(heom_structure_A.ado_gammas < AB_coupling_info.Gamma_cut) ;
+    n_trunc_ado = length(ado_inds) ;
+    fprintf('n_ado_trunc = %d.\n',n_trunc_ado) ;
+    d_AB = d_hilb_A * d_hilb_B ;
+    d_heom_AB = n_ados * d_AB ;
+    inds_trunc = kron(ado_inds*d_AB,ones([d_AB,1])) - repmat(((d_AB-1):-1:0)',[n_trunc_ado,1]);
+    inds_trunc_A = kron(ado_inds*d_hilb_A *d_hilb_A,ones([d_hilb_A *d_hilb_A,1])) - repmat(((d_hilb_A*d_hilb_A-1):-1:0)',[n_trunc_ado,1]);
+    inds_trunc_B = kron(ado_inds*d_hilb_B *d_hilb_B,ones([d_hilb_B *d_hilb_B,1])) - repmat(((d_hilb_B*d_hilb_B-1):-1:0)',[n_trunc_ado,1]);
+    d_trunc = length(inds_trunc) ;
+    d_trunc_A = length(inds_trunc_A) ;
+    d_trunc_B = length(inds_trunc_B) ;
+    d_trunc_full = d_trunc_A + d_trunc_B ;
+    % get the transformation matrix to truncate the space
+    S_trunc = sparse([1:d_trunc]',[inds_trunc],ones([d_trunc,1]),d_trunc,d_heom_AB) ;
+    S_trunc_A = sparse([1:d_trunc_A]',[inds_trunc_A],ones([d_trunc_A,1]),d_trunc_A,d_heom_A) ;
+    S_trunc_B = sparse([1:d_trunc_B]',[inds_trunc_B],ones([d_trunc_B,1]),d_trunc_B,d_heom_B) ;
+    S_trunc_full = sparse([],[],[],d_trunc_full, d_heom_A + d_heom_B) ;
+    S_trunc_full(1:d_trunc_A,1:d_heom_A) = S_trunc_A ;
+    S_trunc_full(((d_trunc_A + 1):(d_trunc_A+d_trunc_B)),(d_heom_A+1):(d_heom_A+d_heom_B)) = S_trunc_B ;
 
+    % construct the coherence blocks of the heom liouvillian
+    L_AB = constructHEOMABGenerator(H_sys_A,H_sys_B,V_As,V_Bs,heom_bath_info,heom_truncation_info,heom_structure_A) ;
+    L_BA = constructHEOMABGenerator(H_sys_B,H_sys_A,V_Bs,V_As,heom_bath_info,heom_truncation_info,heom_structure_A) ;
+    % truncate these
+    L_AB_trunc = S_trunc *  L_AB * (S_trunc') ;
+    L_BA_trunc = S_trunc *  L_BA * (S_trunc') ;
+
+    % diagonalise the coherence blocks of the HEOM liouvillian
+    [V_AB,Lambda_AB] = eig(full(L_AB_trunc),'vector') ;
+    %     V_AB_inv = inv(V_AB) ;
+    V_AB_inv = V_AB\eye(d_trunc) ;
+    %     max(max(abs( V_AB*(Lambda_AB.*(V_AB_inv))-L_AB )))
+
+    [V_BA,Lambda_BA] = eig(full(L_BA_trunc),'vector') ;
+    %     V_AB_inv = inv(V_AB) ;
+    V_BA_inv = V_BA\eye(d_trunc) ;
+    %     max(max(abs( V_BA*(Lambda_BA.*(V_BA_inv))-L_BA )))
+
+    % calculate some integrals
+    g_A_AB = trapz(ts,conj(c_A_ts).*exp(Lambda_AB.*ts),2) ;
+    g_A_BA = trapz(ts,c_A_ts.*exp(Lambda_BA.*ts),2) ;
+    g_B_AB = trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2) ;
+    g_B_BA = trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2) ;
+
+    % construct some integrated effective propagators
+    G_A_AB = V_AB * (g_A_AB.* V_AB_inv) ;
+    G_A_BA = V_BA * (g_A_BA.* V_BA_inv) ;
+    G_B_AB = V_AB * (g_B_AB.* V_AB_inv) ;
+    G_B_BA = V_BA * (g_B_BA.* V_BA_inv) ;
+
+    % construct the NZ2 rate operator in the truncated space
+    id_ados_trunc = speye(n_trunc_ado) ;
+    d_heom_A_trunc = d_hilb_A *  d_hilb_A * n_trunc_ado ;
+    d_heom_B_trunc = d_hilb_B *  d_hilb_B * n_trunc_ado ; 
+    d_heom_trunc = d_heom_A_trunc + d_heom_B_trunc;
+    K_trunc = zeros([d_heom_trunc,d_heom_trunc]) ;
+
+    % construct the AA part of the NZ2 rate operator
+    Gamma = AB_coupling_info.coupling_matrix ;
+    Gamma_L_AA = kron(id_ados_trunc,kron(Gamma',id_hilb_A)) ;
+    Gamma_L_BA = kron(id_ados_trunc,kron(Gamma,id_hilb_A)) ;
+    Gamma_R_AA = kron(id_ados_trunc,kron(id_hilb_A,transpose(Gamma))) ;
+    Gamma_R_AB = kron(id_ados_trunc,kron(id_hilb_A,transpose(Gamma'))) ;
+
+    K_trunc(1:d_heom_A_trunc,1:d_heom_A_trunc) = -Gamma_L_BA * G_A_BA  * Gamma_L_AA  - Gamma_R_AB * G_A_AB * Gamma_R_AA ;
+
+    % construct the BB part
+    Gamma_L_BB = kron(id_ados_trunc,kron(Gamma,id_hilb_B)) ;
+    Gamma_L_AB = kron(id_ados_trunc,kron(Gamma',id_hilb_B)) ;
+    Gamma_R_BB = kron(id_ados_trunc,kron(id_hilb_B,transpose(Gamma'))) ;
+    Gamma_R_BA = kron(id_ados_trunc,kron(id_hilb_B,transpose(Gamma))) ;
+    K_trunc((d_heom_A_trunc+1):(d_heom_A_trunc+d_heom_B_trunc),(d_heom_A_trunc+1):(d_heom_A_trunc+d_heom_B_trunc)) = ...
+        -Gamma_L_AB * G_B_AB * Gamma_L_BB  - Gamma_R_BA * G_B_BA * Gamma_R_BB;
+
+    % construct BA part
+    K_trunc((d_heom_A_trunc+1):(d_heom_A_trunc+d_heom_B_trunc),1:d_heom_A_trunc) = ...
+        Gamma_R_BA * G_A_BA  * Gamma_L_AA  + Gamma_L_AB * G_A_AB * Gamma_R_AA ;
+
+    % construct the AB part
+    K_trunc(1:d_heom_A_trunc,(d_heom_A_trunc+1):(d_heom_A_trunc+d_heom_B_trunc)) = ...
+        Gamma_R_AB * G_B_AB * Gamma_L_BB  + Gamma_L_BA * G_B_BA * Gamma_R_BB ;
+
+    % construct the full K 
+    K = sparse([],[],[],d,d) ;
+    
+
+    % construct K for the remaining ados
+    % construct the L_sys operators acting on AB and BA spaces
+    L_sys_AB = -1.0i * kron(H_sys_A,id_hilb_B) +1.0i *kron(id_hilb_A,transpose(H_sys_B)) ;
+    L_sys_BA = -1.0i * kron(H_sys_B,id_hilb_A) +1.0i *kron(id_hilb_B,transpose(H_sys_A)) ;
+    [P_AB,Lambda_AB] = eig(full(L_sys_AB),'vector') ;
+    P_AB_inv = P_AB\eye(d_hilb_A*d_hilb_B) ;
+    [P_BA,Lambda_BA] = eig(full(L_sys_BA),'vector') ;
+    P_BA_inv = P_BA\eye(d_hilb_A*d_hilb_B) ;
+    Pi_AB = kron(id_ados,P_AB) ;
+    Pi_AB_inv = kron(id_ados,P_AB_inv) ;
+    Pi_BA = kron(id_ados,P_BA) ;
+    Pi_BA_inv = kron(id_ados,P_BA_inv) ;
+    % construct some fourier transforms
+    g_A_AB_0 = repmat(trapz(ts,conj(c_A_ts).*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+    g_A_BA_0 = repmat(trapz(ts,c_A_ts.*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+    g_B_AB_0 = repmat(trapz(ts,c_B_ts.*exp(Lambda_AB.*ts),2),[n_ados,1]) ;
+    g_B_BA_0 = repmat(trapz(ts,conj(c_B_ts).*exp(Lambda_BA.*ts),2),[n_ados,1]) ;
+    Lambda_AB = repmat(Lambda_AB,[n_ados,1]) ;
+    Lambda_BA = repmat(Lambda_BA,[n_ados,1]) ;
+    % find the indices of the AB ados in the complementary space
+    inds_comp = 1:d_heom_AB ;
+    is_trunc = ismember(inds_comp,inds_trunc) ;
+    inds_comp = inds_comp(~is_trunc) ;
+    g_A_BA_0(is_trunc) = 0 ;
+    g_A_BA_0(is_trunc) = 0 ; 
+    g_B_AB_0(is_trunc) = 0 ;
+    g_B_BA_0(is_trunc) = 0 ;
+    % construct the remaining portion on the operator
+    G_A_BA_0 = Pi_BA * (repmat(g_A_BA_0,[1,1]).* Pi_BA_inv) ;
+    G_A_AB_0 = Pi_AB * (repmat(g_A_AB_0,[1,1]).* Pi_AB_inv) ;
+    G_B_BA_0 = Pi_BA * (repmat(g_B_BA_0,[1,1]).* Pi_BA_inv) ;
+    G_B_AB_0 = Pi_AB * (repmat(g_B_AB_0,[1,1]).* Pi_AB_inv) ;
+
+    % construct Gamma operators
+    Gamma = AB_coupling_info.coupling_matrix ;
+    proj_comp_ados = spdiags(heom_structure_A.ado_gammas >= AB_coupling_info.Gamma_cut,[0],n_ados,n_ados);
+    Gamma_L_AA = kron(proj_comp_ados,kron(Gamma',id_hilb_A)) ;
+    Gamma_L_BA = kron(proj_comp_ados,kron(Gamma,id_hilb_A)) ;
+    Gamma_R_AA = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma))) ;
+    Gamma_R_AB = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma'))) ;
+    Gamma_L_BB = kron(proj_comp_ados,kron(Gamma,id_hilb_B)) ;
+    Gamma_L_AB = kron(proj_comp_ados,kron(Gamma',id_hilb_B)) ;
+    Gamma_R_BB = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma'))) ;
+    Gamma_R_BA = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma))) ;
+
+
+    % BB part
+    K((d_heom_A+1):(d_heom_A+d_heom_B),(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
+        -Gamma_L_AB * (G_B_AB_0) * Gamma_L_BB  - Gamma_R_BA * (G_B_BA_0) * Gamma_R_BB;
+    % construct the AB part
+    K(1:d_heom_A,(d_heom_A+1):(d_heom_A+d_heom_B)) = ...
+        Gamma_R_AB * (G_B_AB_0) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0) * Gamma_R_BB ;
+    % AA part
+    K(1:d_heom_A,1:d_heom_A) = -Gamma_L_BA * (G_A_BA_0)  * Gamma_L_AA  - Gamma_R_AB * (G_A_AB_0) * Gamma_R_AA ;
+
+    % construct BA part
+    K((d_heom_A+1):(d_heom_A+d_heom_B),1:d_heom_A) = ...
+        Gamma_R_BA * (G_A_BA_0)  * Gamma_L_AA  + Gamma_L_AB * (G_A_AB_0) * Gamma_R_AA ;
+
+    
+    if (n_trunc_ado == n_ados)
+        K = K + S_trunc_full' * full(K_trunc) * S_trunc_full ;
+    else 
+        K = K + S_trunc_full' * sparse(K_trunc) * S_trunc_full ; 
+    end
 end
 
-if AB_coupling_info.phonon_method == "simplified"
-    % first the
-end
 
 
 end

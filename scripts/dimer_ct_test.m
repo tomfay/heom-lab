@@ -4,21 +4,23 @@ delta_epsilon = 1.0e0 ;
 J = 1.0e0 ; 
 
 % set up explicit bath parameters
-lambda_D = 1e0 ;
+lambda_D = 1.0e0 ;
 omega_D = 0.25 ;
 beta = 1.0 ;
-lambda_AB = 5.0 ;
+lambda_AB = 3.0 ;
 omega_AB = 0.25 ;
 Gamma_AB = 0.1 ;
-Delta_E_AB = 4.0 ;
+Delta_E_AB = 6.0 ;
 eta = sqrt(lambda_AB/lambda_D) ;
 
 % dynamics information
 dt = 0.01e0 ;
-n_steps = 400000 ;
+n_steps = 100000 ;
 krylov_dim = 9 ;
-krylov_tol = 1e-11 ;
-Gamma_cut = 75 ;
+krylov_tol = 1e-12 ;
+order_adapt_taylor = 4 ;
+tol_adapt_taylor = 1e-2 ;
+Gamma_cut = 5 ;
 p = 1 ;
 L_cut = 20 ;
 
@@ -68,12 +70,17 @@ heom_dynamics.observables.system = {[[0,1,0];[1,0,0];[0,0,0]],[[0,-1.0i,0];[1.0i
 
 % integrator information, currently only the short iterative arnoldi is
 % implemented
-heom_dynamics.integrator = struct ;
+heom_dynamics.integrator = struct() ;
 heom_dynamics.integrator.method = "adaptive SIA" ;
 heom_dynamics.integrator.dt = dt ;
 heom_dynamics.integrator.n_steps = n_steps ;
 heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
+% heom_dynamics.integrator = struct() ;
+% heom_dynamics.integrator.method = "adaptive taylor" ;
+% heom_dynamics.integrator.order = order_adapt_taylor ;
+% heom_dynamics.integrator.tol = tol_adapt_taylor ;
+% heom_dynamics.integrator.t_max = n_steps*dt ;
 
 % hierarchy trunction information
 % heom_dynamics.heom_truncation = struct() ;
@@ -87,10 +94,11 @@ heom_dynamics.heom_truncation.L_cut = L_cut ;
 heom_dynamics.heom_truncation.p = p ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
+
 % run the dynamics
 [O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
-skip = 10 ;
 O_t_full = O_t ;
 t_full = t ;
+skip = 10 ;
 O_t = O_t(:,1:skip:end) ;
 t = t(1:skip:end) ;

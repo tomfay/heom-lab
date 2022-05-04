@@ -19,6 +19,7 @@ krylov_dim = 8 ;
 krylov_tol = 1e-8 ;
 L_max = 6 ;
 M_max = 4 ;
+% Gamma_cut = 4.1*omega_D ;
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -60,6 +61,8 @@ heom_dynamics.heom_truncation = struct ;
 heom_dynamics.heom_truncation.truncation_method = "depth cut-off" ;
 heom_dynamics.heom_truncation.M_max = M_max ;
 heom_dynamics.heom_truncation.L_max = L_max ;
+% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % what system observables should be returned
