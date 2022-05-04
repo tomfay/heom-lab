@@ -5,24 +5,24 @@ J = 1.0e0 ;
 
 % set up explicit bath parameters
 lambda_D = 1.0e0 ;
-omega_D = 0.25 ;
+omega_D = 1.75 ;
 beta = 1.0 ;
-lambda_AB = 3.0 ;
-omega_AB = 0.25 ;
-Gamma_AB = 0.1 ;
-Delta_E_AB = 6.0 ;
+lambda_AB = 5.0 ;
+omega_AB = 1.75 ;
+Gamma_AB = 0.5 ;
+Delta_E_AB = 2.0 ;
 eta = sqrt(lambda_AB/lambda_D) ;
 
 % dynamics information
 dt = 0.01e0 ;
-n_steps = 100000 ;
+n_steps = 10000 ;
 krylov_dim = 9 ;
 krylov_tol = 1e-12 ;
 order_adapt_taylor = 4 ;
 tol_adapt_taylor = 1e-2 ;
 Gamma_cut = 5 ;
 p = 1 ;
-L_cut = 20 ;
+L_cut = 40 ;
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
@@ -82,6 +82,6 @@ heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 [O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
 O_t_full = O_t ;
 t_full = t ;
-skip = 10 ;
+skip = 1 ;
 O_t = O_t(:,1:skip:end) ;
 t = t(1:skip:end) ;
