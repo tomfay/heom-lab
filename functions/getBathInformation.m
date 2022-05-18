@@ -13,7 +13,7 @@ for i = 1:n_baths
     if (baths{i}.spectral_density == "debye")
         lambda_Ds = [lambda_Ds,baths{i}.lambda_D] ;
         omega_Ds = [omega_Ds,baths{i}.omega_D] ;
-        Vs = [Vs,baths{i}.V] ; 
+        Vs = [Vs,{baths{i}.V}] ; 
     end
 end
 
@@ -22,7 +22,7 @@ for i = 1:n_baths
         lambda_OBOs = [lambda_OBOs,baths{i}.lambda] ;
         Omega_OBOs = [Omega_OBOs,baths{i}.Omega] ;
         gamma_OBOs = [gamma_OBOs,baths{i}.gamma] ;
-        Vs = [Vs,baths{i}.V] ; 
+        Vs = [Vs,{baths{i}.V}] ; 
     end
 end
 
@@ -31,7 +31,7 @@ for i = 1:n_baths
         lambda_UBOs = [lambda_UBOs,baths{i}.lambda] ;
         Omega_UBOs = [Omega_UBOs,baths{i}.Omega] ;
         gamma_UBOs = [gamma_UBOs,baths{i}.gamma] ;
-        Vs = [Vs,baths{i}.V] ; 
+        Vs = [Vs,{baths{i}.V}] ; 
     end
 end
 

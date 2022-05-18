@@ -122,7 +122,7 @@ for k = 1:n_modes
         gamma_ado = sum(ado_indices_new.*nus) ;
         cutoff_func = sum((ado_indices_new.*mode_weights).^p) ;
         is_included = (cutoff_func<L_cut_p) ;
-
+        [is_member_term,index_term] = ismember(ado_indices_new,ado_indices_L_term,'rows') ;     
         if (~is_member_term & ~is_included)
             ado_indices_L_term = [ado_indices_L_term; ado_indices_new] ;
             J_term = size(ado_indices_L_term,1) + n_below_term ;

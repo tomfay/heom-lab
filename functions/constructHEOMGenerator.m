@@ -99,8 +99,8 @@ if (nargin~=4)
     heom_structure.cs = cs ;
     heom_structure.cbars = cbars ;
     heom_structure.M = M ;
-    heom_structure.cs_array_debye = cs_array_debye ;
-    heom_structure.nus_array_debye = nus_array_debye ;
+    %     heom_structure.cs_array_debye = cs_array_debye ;
+    %     heom_structure.nus_array_debye = nus_array_debye ;
     heom_structure.mode_info = mode_info ;
     heom_structure.ado_indices_term = ado_indices_term ;
     heom_structure.modes_term = modes_term ;
@@ -140,6 +140,8 @@ n_OBO_baths = numel(heom_bath_info.lambda_OBOs) ;
 n_UBO_baths = numel(heom_bath_info.lambda_UBOs) ;
 n_couplings = size(lower_indices,1) ;
 
+fprintf('N_ado = %d, M = %d\n',[n_ados,M]) ;
+
 % first make some useful system superoperators
 id_sys = speye(d_sys) ;
 id_liou = speye(d_liou) ;
@@ -159,7 +161,7 @@ end
 
 % add matsurbara truncation correction
 Xi = sparse([],[],[],d_liou,d_liou) ;
-if (heom_truncation_info.heom_termination == "markovian" )
+if (heom_truncation_info.heom_termination == "markovian"  || heom_truncation_info.heom_termination == "low temp correction")
     for j = 1:n_debye_baths
         R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) - sum(cs_array_debye(j,2:end)./nus_array_debye(j,2:end)) ;
         Xi = Xi - R_j * V_comm{j}*V_comm{j} ;
@@ -177,11 +179,13 @@ if (heom_truncation_info.heom_termination == "markovian" )
         Xi = Xi - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
     end
     Xi = kron(id_ados,Xi) ;
-elseif (heom_truncation_info.heom_termination == "NZ2")
+elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.heom_termination == "low temp correction NZ2"...
+        || heom_truncation_info.heom_termination == "RF2" || heom_truncation_info.heom_termination == "low temp correction RF2" ...
+        || heom_truncation_info.heom_termination == "partial resummed")
     k_max = heom_truncation_info.termination_k_max ;
     % get the eigenvalues and eigenvectors of the system liouvillian
     [Pi_sys,lambda_sys] = eig(full(L_sys),'vector') ;
-%     lambda_sys = 0*lambda_sys ;
+    %     lambda_sys = 0*lambda_sys ;
     Pi_sys_inv = inv(Pi_sys) ;
     cs_term = {} ;
     cbars_term = {} ;
@@ -189,6 +193,9 @@ elseif (heom_truncation_info.heom_termination == "NZ2")
     V_comm_Pi_sys = {} ;
     Pi_sys_inv_V_R = {} ;
     Pi_sys_inv_V_L = {} ;
+    Pi_sys_inv_V_R_Pi_sys = {} ;
+    Pi_sys_inv_V_L_Pi_sys = {} ;
+    n_modes_term = [] ;
     if (numel(heom_bath_info.lambda_Ds)>0)
         [nus_array_debye_term,cs_array_debye_term] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
             heom_bath_info.lambda_Ds,heom_bath_info.beta,k_max) ;
@@ -239,17 +246,38 @@ elseif (heom_truncation_info.heom_termination == "NZ2")
         V_comm_Pi_sys{j} = V_comm{j} * Pi_sys ;
         Pi_sys_inv_V_R{j} = Pi_sys_inv * V_R{j} ;
         Pi_sys_inv_V_L{j} = Pi_sys_inv * V_L{j} ;
+        Pi_sys_inv_V_R_Pi_sys{j} = Pi_sys_inv_V_R{j} * Pi_sys ;
+        Pi_sys_inv_V_L_Pi_sys{j} = Pi_sys_inv_V_L{j} * Pi_sys ;
     end
     % create empty Xi
-    Xi = sparse([],[],[],d_heom,d_heom,n_ados*d_liou*d_liou) ;
-    for J = 1:n_ados
-        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
-        for j =1:n_baths
-            n_jks_term = zeros([1,k_max-M]) ;
-            Xi(J_block,J_block) = Xi(J_block,J_block) ...
-                - V_comm_Pi_sys{j} * ((sum(((n_jks_term+1).*cs_term{j})./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_L{j})...
-                - (sum(((n_jks_term+1).*conj(cbars_term{j}))./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_R{j}));
+    if (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.heom_termination == "low temp correction NZ2"...
+            || heom_truncation_info.heom_termination == "partial resummed")
+        Xi = sparse([],[],[],d_heom,d_heom,n_ados*d_liou*d_liou) ;
+        for J = 1:n_ados
+            J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+            for j =1:n_baths
+                n_jks_term = zeros([1,k_max-M]) ;
+                Xi(J_block,J_block) = Xi(J_block,J_block) ...
+                    - V_comm_Pi_sys{j} * ((sum(((n_jks_term+1).*cs_term{j})./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_L{j})...
+                    - (sum(((n_jks_term+1).*conj(cbars_term{j}))./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_R{j}));
+            end
         end
+    elseif (heom_truncation_info.heom_termination == "RF2" || heom_truncation_info.heom_termination == "low temp correction RF2")
+        fprintf("adding RF term.\n")
+        Xi_RF = zeros([d_liou,d_liou]) ;
+        Delta_lambda_sys = lambda_sys - transpose(lambda_sys) ;
+        for j =1:n_baths
+            A_j = zeros([d_liou,d_liou]) ;
+            Abar_j = zeros([d_liou,d_liou]) ;
+            for k = 1:numel(nus_term{j})
+                J_jk = 1./(nus_term{j}(k)-  Delta_lambda_sys) ;
+                Abar_j = Abar_j + cbars_term{j}(k) * J_jk ;
+                A_j = A_j + cs_term{j}(k) * J_jk ;
+            end
+            Xi_RF = Xi_RF - V_comm_Pi_sys{j} * (...
+                (A_j .* Pi_sys_inv_V_L_Pi_sys{j} - Abar_j .* Pi_sys_inv_V_R_Pi_sys{j})) * Pi_sys_inv ;
+        end
+        Xi = kron(id_ados,Xi_RF) ;
     end
     % use the standard Markovian approximation for all modes with k>k_max ;
     Xi_markov = zeros([d_liou,d_liou]) ;
@@ -271,7 +299,7 @@ elseif (heom_truncation_info.heom_termination == "NZ2")
         Xi_markov = Xi_markov - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
     end
     Xi = Xi + kron(id_ados,Xi_markov) ;
-    
+
 end
 % add the free system evolution term to the HEOM generator
 L_heom = kron(id_ados,L_sys)+Xi ;
@@ -314,70 +342,133 @@ for r = 1:n_couplings
     end
 end
 
-% ORIGINAL INCORRECT TERMINATOR CODE
-% if (heom_truncation_info.heom_termination == "markovian")
-%     % add a perturbative correction for the ados at which the hierarchy is terminated
-%     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
-%     terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
-%     n_term = size(terminator_ado_indices,1) ;
-%     for r = 1:n_term
-%         jk_term = terminator_modes(r) ;
-%         j_term = terminator_bath_indices(r) ;
-%         J = terminator_ado_indices(r) ;
-%         n_jks = ado_indices(J,:) ;
-%         n_jk_term = n_jks(jk_term) ;
-%         c_jk_term = cs(jk_term) ;
-%         cbar_jk_term = cbars(jk_term) ;
-%         J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
-%         n_jks_term = n_jks ;
-%         n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
-%         L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
-%             -(1.0i/(ado_gammas(J)+nus(jk_term))) * V_comm{j_term}*...
-%             ((-1.0i*c_jk_term*(n_jk_term+1)) * V_L{j_term} ...
-%             + (1.0i*conj(cbar_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
-%         %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -(1.0i/sum(nus.*n_jks_term)) * V_comm{j_term}*((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
-%         %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
-% 
-% 
-%         %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -...
-%         %         (1.0i) * V_comm{j_term}*((-L_sys-Xi+(ado_gammas(J)+nus(jk_term))*id_liou)\((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
-%         %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} )) ;
-%     end
-% elseif (heom_truncation_info.heom_termination == "NZ2")
-%         % add a perturbative correction for the ados at which the hierarchy is terminated
-%     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
-%     terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
-%     n_term = size(terminator_ado_indices,1) ;
-%     for r = 1:n_term
-%         jk_term = terminator_modes(r) ;
-%         j_term = terminator_bath_indices(r) ;
-%         J = terminator_ado_indices(r) ;
-%         n_jks = ado_indices(J,:) ;
-%         n_jk_term = n_jks(jk_term) ;
-%         c_jk_term = cs(jk_term) ;
-%         cbar_jk_term = cbars(jk_term) ;
-%         nu_jk_term = nus(jk_term) ;
-%         J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
-%         n_jks_term = n_jks ;
-%         n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
-%         L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
-%                 - V_comm_Pi_sys{j_term} * (((((n_jk_term+1).*c_jk_term)./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_L{j_term})...
-%                 - ((((n_jk_term+1).*conj(cbar_jk_term))./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_R{j_term}));
-%     end
-% end
+% ORIGINAL INCORRECT TERMINATOR CODE - diagonal only
+diag_only_term = false ;
+if (isfield(heom_truncation_info,'diagonal_only_term'))
+    if (heom_truncation_info.diagonal_only_term)
+        diag_only_term = true ;
+    end
+end
 
-if (heom_truncation_info.heom_termination == "markovian" || heom_truncation_info.heom_termination == "NZ2")
+if (heom_truncation_info.heom_termination == "markovian" && diag_only_term)
     % add a perturbative correction for the ados at which the hierarchy is terminated
-%     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
-%     terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
-%     n_term = size(terminator_ado_indices,1) ;
+    [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    n_term = size(terminator_ado_indices,1) ;
+    for r = 1:n_term
+        jk_term = terminator_modes(r) ;
+        j_term = terminator_bath_indices(r) ;
+        J = terminator_ado_indices(r) ;
+        n_jks = ado_indices(J,:) ;
+        n_jk_term = n_jks(jk_term) ;
+        c_jk_term = cs(jk_term) ;
+        cbar_jk_term = cbars(jk_term) ;
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+        n_jks_term = n_jks ;
+        n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
+            -(1.0i/(ado_gammas(J)+nus(jk_term))) * V_comm{j_term}*...
+            ((-1.0i*c_jk_term*(n_jk_term+1)) * V_L{j_term} ...
+            + (1.0i*conj(cbar_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
+        %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -(1.0i/sum(nus.*n_jks_term)) * V_comm{j_term}*((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
+        %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} ) ;
+
+
+        %     L_heom(J_block,J_block) = L_heom(J_block,J_block) -...
+        %         (1.0i) * V_comm{j_term}*((-L_sys-Xi+(ado_gammas(J)+nus(jk_term))*id_liou)\((-1.0i*c_jk_term*n_jk_term) * V_L{j_coup} ...
+        %         + (1.0i*conj(c_jk_term)*(n_jk_term+1)) * V_R{j_term} )) ;
+    end
+
+elseif (heom_truncation_info.heom_termination == "NZ2" && diag_only_term)
+    % add a perturbative correction for the ados at which the hierarchy is terminated
+    fprintf('Adding NZ2 terminators.\n')
+    [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    n_term = size(terminator_ado_indices,1) ;
+    for r = 1:n_term
+        jk_term = terminator_modes(r) ;
+        j_term = terminator_bath_indices(r) ;
+        J = terminator_ado_indices(r) ;
+        n_jks = ado_indices(J,:) ;
+        n_jk_term = n_jks(jk_term) ;
+        c_jk_term = cs(jk_term) ;
+        cbar_jk_term = cbars(jk_term) ;
+        nu_jk_term = nus(jk_term) ;
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+        n_jks_term = n_jks ;
+        n_jks_term(jk_term) = n_jks_term(jk_term) + 1 ;
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
+            - V_comm_Pi_sys{j_term} * (((((n_jk_term+1).*c_jk_term)./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_L{j_term})...
+            - ((((n_jk_term+1).*conj(cbar_jk_term))./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_R{j_term}));
+    end
+elseif (heom_truncation_info.heom_termination == "RF2" && diag_only_term)
+    % add a perturbative correction for the ados at which the hierarchy is terminated
+    fprintf('Adding RF2 terminators.\n')
+    [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    n_term = size(terminator_ado_indices,1) ;
+    for r = 1:n_term
+        jk_term = terminator_modes(r) ;
+        j_term = terminator_bath_indices(r) ;
+        J = terminator_ado_indices(r) ;
+        n_jks = ado_indices(J,:) ;
+        n_jk_term = n_jks(jk_term) ;
+        c_jk_term = cs(jk_term) ;
+        cbar_jk_term = cbars(jk_term) ;
+        nu_jk_term = nus(jk_term) ;
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+
+
+        J_jk = (n_jk_term+1)./(nu_jk_term-  Delta_lambda_sys) ;
+        Abar_j = cbar_jk_term * J_jk ;
+        A_j =  c_jk_term * J_jk ;
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) ...
+             - V_comm_Pi_sys{j_term} * (...
+                (A_j .* Pi_sys_inv_V_L_Pi_sys{j_term} - Abar_j .* Pi_sys_inv_V_R_Pi_sys{j_term})) * Pi_sys_inv ;
+    end
+elseif (heom_truncation_info.heom_termination == "partial resummed")
+    % add a perturbative correction for the ados at which the hierarchy is terminated
+    [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    n_term = size(terminator_ado_indices,1) ;
+    n_max = heom_truncation_info.n_max_resum ;
+    for r = 1:n_term
+        jk_term = terminator_modes(r) ;
+        j_term = terminator_bath_indices(r) ;
+        J = terminator_ado_indices(r) ;
+        n_jks = ado_indices(J,:) ;
+        n_jk_term = n_jks(jk_term) ;
+        c_jk_term = cs(jk_term) ;
+        cbar_jk_term = cbars(jk_term) ;
+        nu_jk_term = nus(jk_term) ;
+        J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
+        T = computeResummedTerminator(V_L{j_term},V_R{j_term},c_jk_term,cbar_jk_term,nu_jk_term,n_jk_term,ado_gammas(J),n_max,Pi_sys,Pi_sys_inv,lambda_sys,L_sys) ;
+        L_heom(J_block,J_block) = L_heom(J_block,J_block) + T ;
+%         T_NZ = - V_comm_Pi_sys{j_term} * (((((n_jk_term+1).*c_jk_term)./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_L{j_term})...
+%             - ((((n_jk_term+1).*conj(cbar_jk_term))./((ado_gammas(J)+nu_jk_term)-lambda_sys )).* Pi_sys_inv_V_R{j_term}))
+        
+    end
+end
+
+if ((heom_truncation_info.heom_termination == "markovian" || heom_truncation_info.heom_termination == "NZ2")&& ~diag_only_term)
+    % add a perturbative correction for the ados at which the hierarchy is terminated
+    %     [terminator_ado_indices,terminator_modes] = find(truncated_coupled_modes) ;
+    %     terminator_bath_indices = getCoupledBathIndices(terminator_modes,mode_info) ;
+    %     n_term = size(terminator_ado_indices,1) ;
     % get the number of terminating ADOs
     n_term_ados = size(ado_indices_term,1) ;
     for r = 1:n_term_ados
         % get the number of connections up into the explicit hierarchy
         n_term_indices = numel(term_indices{r}) ;
         for ind_J = 1:n_term_indices
-            for ind_K = 1:n_term_indices
+            ind_K_range = 1:n_term_indices ;
+            %             if (isfield(heom_truncation_info,'diagonal_only_term'))
+            %                 if (heom_truncation_info.diagonal_only_term)
+            %                     ind_K_range = ind_J ;
+            %                 end
+            %             end
+
+            for ind_K = ind_K_range
                 % get the hierarchy indices of the coupled terms in the
                 % truncated hierarchy
                 J = term_indices{r}(ind_J) ;
@@ -406,14 +497,16 @@ if (heom_truncation_info.heom_termination == "markovian" || heom_truncation_info
                         - conj(cbar_K)*sqrt((n_K+1)/abs(c_K)) * V_R{j_K} ) ;
                 elseif (heom_truncation_info.heom_termination == "NZ2")
                     L_heom(J_block,K_block) = L_heom(J_block,K_block) ...
-                    -(sqrt((n_J+1)*abs(c_J))) * V_comm_Pi_sys{j_J}*...
-                    ( (c_K*sqrt((n_K+1)/abs(c_K))./ (gamma_ado_term-lambda_sys)).* Pi_sys_inv_V_L{j_K} ...
-                    - (conj(cbar_K)*sqrt((n_K+1)/abs(c_K))./ (gamma_ado_term-lambda_sys)) .* Pi_sys_inv_V_R{j_K} ) ;
+                        -(sqrt((n_J+1)*abs(c_J))) * V_comm_Pi_sys{j_J}*...
+                        ( (c_K*sqrt((n_K+1)/abs(c_K))./ (gamma_ado_term-lambda_sys)).* Pi_sys_inv_V_L{j_K} ...
+                        - (conj(cbar_K)*sqrt((n_K+1)/abs(c_K))./ (gamma_ado_term-lambda_sys)) .* Pi_sys_inv_V_R{j_K} ) ;
                 end
             end
         end
     end
-       
+
 end
+
+
 
 end
