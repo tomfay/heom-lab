@@ -105,6 +105,12 @@ if (nargin~=4)
     heom_structure.ado_indices_term = ado_indices_term ;
     heom_structure.modes_term = modes_term ;
     heom_structure.term_indices = term_indices;
+    heom_structure.cs_array_debye = cs_array_debye ;
+    heom_structure.nus_array_debye = nus_array_debye ;
+    heom_structure.mode_info = mode_info ;
+    heom_structure.ado_indices_term = ado_indices_term ;
+    heom_structure.modes_term = modes_term ;
+    heom_structure.term_indices = term_indices;
 elseif (nargin==4)
     heom_structure = heom_structure_in ;
     ado_gammas = heom_structure.ado_gammas  ;
