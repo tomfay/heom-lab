@@ -115,6 +115,7 @@ for k = 1:n_modes
         % generated
         gamma_ado = sum(ado_indices_new.*nus) ;
         is_included = (gamma_ado<gamma_max) ;
+        [is_member_term,index_term] = ismember(ado_indices_new,ado_indices_L_term,'rows') ;     
         if (~is_member_term & ~is_included)
             ado_indices_L_term = [ado_indices_L_term; ado_indices_new] ;
             J_term = size(ado_indices_L_term,1) + n_below_term ;
@@ -130,7 +131,7 @@ end
 ado_indices = [ado_indices;ado_indices_L] ;
 ado_indices_term = [ado_indices_term;ado_indices_L_term] ;
 
-
+fprintf('L_max = %d\n',[L_max]) ;
 
 
 end

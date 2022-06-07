@@ -90,6 +90,7 @@ for k = 1:n_modes
         % check to see if this new set of ado indices has already been
         % generated
         gamma_ado = sum(ado_indices_new.*nus) ;
+        [is_member_term,index_term] = ismember(ado_indices_new,ado_indices_L_term,'rows') ;     
         if (~is_member_term )
             ado_indices_L_term = [ado_indices_L_term; ado_indices_new] ;
             J_term = size(ado_indices_L_term,1) + n_below_term ;
