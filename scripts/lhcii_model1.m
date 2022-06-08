@@ -55,7 +55,7 @@ H_sys_LE(1:(n_LE),1:(n_LE)) = H_sys_LE(1:(n_LE),1:(n_LE)) + J_LE ;
 [psi_exciton,E_exciton] = eig(H_sys_LE,'vector') ;
 
 % set up explicit bath parameters
-kappa = 0.0 ;
+kappa = 1.0 ;
 lambda_D_chla = 220.0 ;
 omega_D_chla = 353.6777 ;
 lambda_D_chlb = 220.0 ;
@@ -75,7 +75,7 @@ omega_lut2CT = omega_CT ;
 Gamma_lut1CT = 240 ;
 Gamma_lut2CT = 279 ;
 % energy of the minima of the states
-epsilon_LE = E_LE_min - lambda_D_chla ;
+epsilon_LE = E_LE_min - lambda_D_chla ; % minimum free energy of LE state relative to GS
 epsilon_lut1CT = (epsilon_LE+Delta_epsilon_LE(n_612a))-82  ;
 epsilon_lut2CT = (epsilon_LE+Delta_epsilon_LE(n_603a))+951  ;
 epsilon_gs = 0 ;
@@ -85,8 +85,8 @@ dt = 1e-3 ;
 n_steps = 10000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 2.1 * omega_D_chla ;
-Gamma_cut_trunc = 1.1 *omega_D_chla ;
+Gamma_cut = 3.1 * omega_D_chla ;
+Gamma_cut_trunc = 2.1 *omega_D_chla ;
 p = 1 ;
 L_cut = 5.0 ;
 
@@ -115,11 +115,11 @@ for n = 1:(n_LE)
     V_lut2CT = [[0]] ;
     V_gs = [[0]] ;
     if n == n_612a
-        V_lut1CT = [[1]] ;
+        V_lut1CT = [[kappa]] ;
         V_gs = [[0]] ;
     end
     if n == n_603a
-        V_lut2CT = [[1]] ;
+        V_lut2CT = [[kappa]] ;
         V_gs = [[0]] ;
     end
     if ismember(n,chla_inds)
@@ -219,9 +219,10 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 heom_dynamics.heom_truncation = struct() ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-heom_dynamics.heom_truncation.heom_termination = "markovian" ;
-% heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
-% heom_dynamics.heom_truncation.termination_k_max = 20 ;
+% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
+heom_dynamics.heom_truncation.termination_k_max = 200 ;
+heom_dynamics.heom_truncation.diagonal_only_term = true ;
 % heom_dynamics.heom_truncation = struct() ;
 % heom_dynamics.heom_truncation.truncation_method = "lambda weighted cut-off" ;
 % heom_dynamics.heom_truncation.L_cut = L_cut ;
