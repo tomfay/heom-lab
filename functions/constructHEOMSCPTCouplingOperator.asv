@@ -1,4 +1,4 @@
-function [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,block_coupling_info,heom_truncation_info)
+    function [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,block_coupling_info,heom_truncation_info)
 
 % get the number of coupling terms between baths
 n_couplings = size(full_system.block_coupling.coupled_blocks,1) ;
@@ -28,17 +28,6 @@ for r = 1:n_couplings
             omegas{r}  = [omegas{r} , omegas_bath] ;
             cs{r} = [cs{r} , cs_bath] ;
             weights{r} = [weights{r},weights_bath * lambda_D] ;
-        elseif bath_info.spectral_density == "BO"
-            Omega = bath_info.Omega ;
-            lambda = bath_info.lambda ;
-            gamma = bath_info.gamma ;
-            rho = @(x)(2.0/pi) * (gamma*Omega*Omega)./((x.*x-Omega*Omega).*(x.*x-Omega*Omega) + (gamma*gamma)*(x.*x)) ;
-            % discretise the spectral density
-            [omegas_bath,weights_bath] = discretiseSpecDenGL(bath_info.n_modes,rho) ;
-            cs_bath = sqrt(2.0*lambda * weights_bath).*omegas_bath ;
-            omegas{r}  = [omegas{r} , omegas_bath] ;
-            cs{r} = [cs{r} , cs_bath] ;
-            weights{r} = [weights{r},weights_bath * lambda] ;
         elseif (bath_info.spectral_density == "high temperature")
             lambda_hiT{r} = bath_info.lambda ;
         else
@@ -214,13 +203,13 @@ if block_coupling_info.method == "truncated NZ"
         Pi_BA = kron(id_ados,P_BA) ;
         Pi_BA_inv = kron(id_ados,P_BA_inv) ;
         % construct some fourier transforms
-        %         n_rep = n_ados ;
-        %         g_A_AB_0 = repmat(trapz(t,conj(c_A_ts).*exp(Lambda_AB.*t),2),[n_rep,1]) ;
-        %         g_A_BA_0 = repmat(trapz(t,c_A_ts.*exp(Lambda_BA.*t),2),[n_rep,1]) ;
-        %         g_B_AB_0 = repmat(trapz(t,c_B_ts.*exp(Lambda_AB.*t),2),[n_rep,1]) ;
-        %         g_B_BA_0 = repmat(trapz(t,conj(c_B_ts).*exp(Lambda_BA.*t),2),[n_rep,1]) ;
-        %         Lambda_AB = repmat(Lambda_AB,[n_rep,1]) ;
-        %         Lambda_BA = repmat(Lambda_BA,[n_rep,1]) ;
+%         n_rep = n_ados ;
+%         g_A_AB_0 = repmat(trapz(t,conj(c_A_ts).*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+%         g_A_BA_0 = repmat(trapz(t,c_A_ts.*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+%         g_B_AB_0 = repmat(trapz(t,c_B_ts.*exp(Lambda_AB.*t),2),[n_rep,1]) ;
+%         g_B_BA_0 = repmat(trapz(t,conj(c_B_ts).*exp(Lambda_BA.*t),2),[n_rep,1]) ;
+%         Lambda_AB = repmat(Lambda_AB,[n_rep,1]) ;
+%         Lambda_BA = repmat(Lambda_BA,[n_rep,1]) ;
 
         n_rep = 1 ;
         Lambda_AB = kron(ones([n_ados,1]),Lambda_AB) - kron((heom_structure_blocks{n_A}.ado_gammas),ones([d_AB,1]));
@@ -284,22 +273,11 @@ drawnow('update')
 
 
 % add in the approximate radiative decay part if specified
-if (isfield(full_system.block_coupling,'coupled_blocks_radiative'))
-    fprintf('Adding radiative coupling terms.\n')
-    n_couplings = size(full_system.block_coupling.coupled_blocks_radiative,1) ;
+if (isfield(block_coupling_info),'coupled_blocks_radiative')
+    n_couplings = size(block_coupling_info.coupled_blocks_radiative,1) ;
     for r = 1:n_couplings
-        
-        n_A = full_system.block_coupling.coupled_blocks_radiative(r,1) ;
-        n_B = full_system.block_coupling.coupled_blocks_radiative(r,2) ;
-        d_AB = d_hilbs(n_A) * d_hilbs(n_B) ;
-        n_ados = n_ados_blocks(n_A) ;
-        d_heom_AB = n_ados * d_AB ;
-        d_hilb_A = d_hilbs(n_A) ;
-        d_hilb_B = d_hilbs(n_B) ;
-        d_heom_A = d_heoms(n_A) ;
-        d_heom_B = d_heoms(n_B) ;
-        id_hilb_A = speye(d_hilb_A) ;
-        id_hilb_B = speye(d_hilb_B) ;
+        n_A = coupled_blocks(r,1) ;
+        n_B = coupled_blocks(r,2) ;
         % construct K for the remaining ados
         % construct the L_sys operators acting on AB and BA spaces
         L_sys_AB = -1.0i * kron(H_sys_A,id_hilb_B) +1.0i *kron(id_hilb_A,transpose(H_sys_B)) ;
@@ -308,60 +286,60 @@ if (isfield(full_system.block_coupling,'coupled_blocks_radiative'))
         Omega_AB = imag(Lambda_AB) ;
         P_AB_inv = P_AB\eye(d_hilb_A*d_hilb_B) ;
         [P_BA,Lambda_BA] = eig(full(L_sys_BA),'vector') ;
-        Omega_BA = imag(Lambda_BA ) ;
+        Omega_BA = imag(Lambda_BA ;)
         P_BA_inv = P_BA\eye(d_hilb_A*d_hilb_B) ;
         Pi_AB = kron(id_ados,P_AB) ;
         Pi_AB_inv = kron(id_ados,P_AB_inv) ;
         Pi_BA = kron(id_ados,P_BA) ;
         Pi_BA_inv = kron(id_ados,P_BA_inv) ;
-        % construct some fourier transforms - check signs here
+        % construct some fourier transforms
+        % int dw w^3 pi delta(Dw_AB + w_ABs - w)
         Delta_E_AB = E_blocks(n_A) - E_blocks(n_B) ;
         Delta_E_BA = E_blocks(n_B) - E_blocks(n_A) ;
-        g_B_BA_0 = pi * (-(Omega_BA-Delta_E_BA).^3) ;
-        g_B_BA_0(g_B_BA_0<0) = 0 ;
-        g_B_BA_0 = repmat(g_B_BA_0,[n_ados,1]) ;
-        g_B_AB_0 = g_B_BA_0 ;
+        g_B_AB_0 = pi * ((Omega_AB-Delta_E_AB).^3) ;
+        g_B_AB_0(g_B_AB_0<0) = 0 ;
+        g_B_AB_0 = repmat(g_B_AB_0,[n_ados,1]) ;
+        % int dw w^3 pi delta(Dw_AB + w_ABs - w)
+        g_B_BA_0 = g_B_AB_0 ;
 
         g_A_BA_0 = pi * ((Omega_BA-Delta_E_BA).^3) ;
         g_A_BA_0(g_A_BA_0<0) = 0 ;
         g_A_BA_0 = repmat(g_A_BA_0,[n_ados,1]) ;
         g_A_AB_0 = g_A_BA_0 ;
 
-
+        
         % construct the remaining portion on the operator
         G_A_BA_0 = Pi_BA * ((repmat(g_A_BA_0,[1,1]).* Pi_BA_inv)) ;
         G_A_AB_0 = Pi_AB * ((repmat(g_A_AB_0,[1,1]).* Pi_AB_inv)) ;
         G_B_BA_0 = Pi_BA * ((repmat(g_B_BA_0,[1,1]).* Pi_BA_inv)) ;
         G_B_AB_0 = Pi_AB * ((repmat(g_B_AB_0,[1,1]).* Pi_AB_inv)) ;
 
-        n_trans_ops = numel(full_system.block_coupling.coupling_matrices_radiative{r}) ;
-        for alpha = 1:n_trans_ops
-            % construct Gamma operators
-            Gamma = full_system.block_coupling.coupling_matrices_radiative{r}{alpha} ;
-            proj_comp_ados = speye(n_ados) ;
-            Gamma_L_AA = kron(proj_comp_ados,kron(Gamma',id_hilb_A)) ;
-            Gamma_L_BA = kron(proj_comp_ados,kron(Gamma,id_hilb_A)) ;
-            Gamma_R_AA = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma))) ;
-            Gamma_R_AB = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma'))) ;
-            Gamma_L_BB = kron(proj_comp_ados,kron(Gamma,id_hilb_B)) ;
-            Gamma_L_AB = kron(proj_comp_ados,kron(Gamma',id_hilb_B)) ;
-            Gamma_R_BB = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma'))) ;
-            Gamma_R_BA = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma))) ;
+        % construct Gamma operators
+        Gamma = full_system.block_coupling.coupling_matrices{r} ;
+        proj_comp_ados = spdiags(heom_structure_blocks{n_A}.ado_gammas >= block_coupling_info.Gamma_cut_trunc,[0],n_ados,n_ados);
+        Gamma_L_AA = kron(proj_comp_ados,kron(Gamma',id_hilb_A)) ;
+        Gamma_L_BA = kron(proj_comp_ados,kron(Gamma,id_hilb_A)) ;
+        Gamma_R_AA = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma))) ;
+        Gamma_R_AB = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma'))) ;
+        Gamma_L_BB = kron(proj_comp_ados,kron(Gamma,id_hilb_B)) ;
+        Gamma_L_AB = kron(proj_comp_ados,kron(Gamma',id_hilb_B)) ;
+        Gamma_R_BB = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma'))) ;
+        Gamma_R_BA = kron(proj_comp_ados,kron(id_hilb_B,transpose(Gamma))) ;
 
-            % BB part
-            K(block_indices{n_B},block_indices{n_B}) = K(block_indices{n_B},block_indices{n_B})  ...
-                - Gamma_L_AB * (G_B_AB_0) * Gamma_L_BB  - Gamma_R_BA * (G_B_BA_0) * Gamma_R_BB;
-            % construct the AB part
-            K(block_indices{n_A},block_indices{n_B}) = K(block_indices{n_A},block_indices{n_B}) ...
-                + Gamma_R_AB * (G_B_AB_0) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0) * Gamma_R_BB ;
-            % AA part
-            K(block_indices{n_A},block_indices{n_A}) = K(block_indices{n_A},block_indices{n_A}) ...
-                - Gamma_L_BA * (G_A_BA_0)  * Gamma_L_AA  - Gamma_R_AB * (G_A_AB_0) * Gamma_R_AA ;
 
-            % construct BA part
-            K(block_indices{n_B},block_indices{n_A}) = K(block_indices{n_B},block_indices{n_A}) ...
-                + Gamma_R_BA * (G_A_BA_0)  * Gamma_L_AA  + Gamma_L_AB * (G_A_AB_0) * Gamma_R_AA ;
-        end
+        % BB part
+        K(block_indices{n_B},block_indices{n_B}) = K(block_indices{n_B},block_indices{n_B})  ...
+            - Gamma_L_AB * (G_B_AB_0) * Gamma_L_BB  - Gamma_R_BA * (G_B_BA_0) * Gamma_R_BB;
+        % construct the AB part
+        K(block_indices{n_A},block_indices{n_B}) = K(block_indices{n_A},block_indices{n_B}) ...
+            + Gamma_R_AB * (G_B_AB_0) * Gamma_L_BB  + Gamma_L_BA * (G_B_BA_0) * Gamma_R_BB ;
+        % AA part
+        K(block_indices{n_A},block_indices{n_A}) = K(block_indices{n_A},block_indices{n_A}) ...
+            - Gamma_L_BA * (G_A_BA_0)  * Gamma_L_AA  - Gamma_R_AB * (G_A_AB_0) * Gamma_R_AA ;
+
+        % construct BA part
+        K(block_indices{n_B},block_indices{n_A}) = K(block_indices{n_B},block_indices{n_A}) ...
+            + Gamma_R_BA * (G_A_BA_0)  * Gamma_L_AA  + Gamma_L_AB * (G_A_AB_0) * Gamma_R_AA ;
     end
 end
 

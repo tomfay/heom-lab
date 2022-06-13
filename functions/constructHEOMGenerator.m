@@ -44,6 +44,8 @@ if (nargin~=4)
 
     else
         mode_info.n_debye = 0 ;
+        cs_array_debye = [] ;
+        nus_array_debye = [] ;
     end
     if (numel(heom_bath_info.lambda_OBOs)>0)
         [nus_array_OBO,cs_array_OBO] = generateNusAndCsOBO(heom_bath_info.gamma_OBOs,...
@@ -166,8 +168,9 @@ for j = 1:n_baths
 end
 
 % add matsurbara truncation correction
-Xi = sparse([],[],[],d_liou,d_liou) ;
+Xi = sparse([],[],[],d_heom,d_heom) ;
 if (heom_truncation_info.heom_termination == "markovian"  || heom_truncation_info.heom_termination == "low temp correction")
+    Xi = sparse([],[],[],d_liou,d_liou) ;
     for j = 1:n_debye_baths
         R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) - sum(cs_array_debye(j,2:end)./nus_array_debye(j,2:end)) ;
         Xi = Xi - R_j * V_comm{j}*V_comm{j} ;

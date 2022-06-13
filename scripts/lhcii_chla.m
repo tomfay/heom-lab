@@ -38,6 +38,8 @@ E_LE = [15415
 14870
 14980
 0] ;
+J_ic = 253.9 ;
+J_ic = 110.0 ;
 chlb_inds = find(E_LE>15000) ;
 chla_inds = find(E_LE<=15000) ;
 n_612a = 12 ;
@@ -54,7 +56,9 @@ J_LE = J_LE(chla_inds(1:(end-1)),chla_inds(1:(end-1))) ;
 n_LE = length(E_LE) ;
 H_sys_LE = diag(E_LE) ;
 H_sys_LE(1:(n_LE-1),1:(n_LE-1)) = H_sys_LE(1:(n_LE-1),1:(n_LE-1)) + J_LE ;
-[psi_exciton,E_exciton] = eig(H_sys_LE,'vector') ;
+H_sys_LE(1:(n_LE-1),n_gs) = J_ic ;
+H_sys_LE(n_gs,1:(n_LE-1)) = J_ic ;
+% [psi_exciton,E_exciton] = eig(H_sys_LE(1:),'vector') ;
 
 % set up explicit bath parameters
 lambda_D = 220.0 ;
@@ -62,26 +66,26 @@ omega_D = 353.6777 ;
 beta = 1.0/208.50907518 ;
 lambda_lut1CT = 5405.0 ;
 lambda_lut2CT = 5052.0 ;
-omega_lut1CT = 353.6777 ;
-omega_lut2CT = 353.6777 ;
-Gamma_lut1CT = 240 ;
-Gamma_lut2CT = 279 ;
+omega_lut1CT = 30.0 ;
+omega_lut2CT = 30.0 ;
+Gamma_lut1CT = 0*240 ;
+Gamma_lut2CT = 0*279 ;
 E_lut1CT = E_LE(n_612a)-82 ;
 E_lut2CT = E_LE(n_603a)+951 ;
 
 % dynamics information
 dt = 1e-3 ;
-n_steps = 50000 ;
-krylov_dim = 9 ;
-krylov_tol = 1e-12 ;
-Gamma_cut = 1200.0 ;
-Gamma_cut_trunc = 00.00 ;
+n_steps = 1000000 ;
+krylov_dim = 16 ;
+krylov_tol = 1e-9 ;
+Gamma_cut = 2.1*omega_D ;
+Gamma_cut_trunc = 0.0*omega_D ;
 p = 1 ;
 L_cut = 5.0 ;
 
 % parameters for evaluating to AB correlation fction
 t_max = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
-n_t = 400 ;
+n_t = 1000 ;
 n_modes = 512 ; % number of modes used to discretise the spectral density
 
 % the full_system object contains all information about the Hamiltonian of
@@ -105,12 +109,13 @@ for n = 1:(n_LE-1)
         V_lut1CT = [[1]] ;
     end
     if n == n_603a  
-        V_lut1CT = [[1]] ;
+        V_lut2CT = [[1]] ;
     end
     full_system.baths{n} = struct(...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D) ;
     full_system.Vs{n} = {V_LE,V_lut1CT,V_lut2CT} ;
 end
+O_LE = [O_LE,{sparse([n_LE],[n_LE],[1],n_LE,n_LE)}] ;
 % baths is a cell array of structs describign each bath
 full_system.beta = beta ;
 
@@ -137,7 +142,8 @@ full_system.block_coupling.t_maxs = [t_max,t_max] ;
 heom_dynamics = struct() ;
 % set the initial condition
 n_init_ex = 9 ;
-heom_dynamics.rho_0_sys = {psi_exciton(:,n_init_ex)* psi_exciton(:,n_init_ex)',[[0]],[[0]]} ;
+heom_dynamics.rho_0_sys = {zeros([n_LE,n_LE]),[[0]],[[0]]} ;
+heom_dynamics.rho_0_sys{1} = diag([(1/(n_LE-1))*ones([n_LE-1,1]);0]) ;
 
 % set up observable arrays
 heom_dynamics.observables = struct() ;
@@ -161,7 +167,9 @@ heom_dynamics.integrator.krylov_tol = krylov_tol ;
 heom_dynamics.heom_truncation = struct() ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
+heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
+heom_dynamics.heom_truncation.termination_k_max = 20 ;
 % heom_dynamics.heom_truncation = struct() ;
 % heom_dynamics.heom_truncation.truncation_method = "lambda weighted cut-off" ;
 % heom_dynamics.heom_truncation.L_cut = L_cut ;
@@ -170,6 +178,7 @@ heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 
 % details of the strongly coupled bath
 % information on how to treat the block coupling
+%% 
 heom_dynamics.blocking_coupling = struct() ;
 heom_dynamics.block_coupling.method = "truncated NZ" ;
 heom_dynamics.block_coupling.Gamma_cut_trunc = Gamma_cut_trunc ;
@@ -177,5 +186,9 @@ heom_dynamics.block_coupling.Gamma_cut_trunc = Gamma_cut_trunc ;
 
 % run the dynamics
 [O_t,t,L,junk] = runHEOMSCPTDynamics(full_system,heom_dynamics) ;
-c_0 = 3e10 ;
+n_save = 1000 ;
+skip = floor(n_steps/n_save) ;
+O_t = O_t(:,1:skip:end) ;
+t = t(1:skip:end) ;
+c_0 = 2.99792458e10 ;
 t_ps = t / (2*pi*c_0 * 1e-12) ;

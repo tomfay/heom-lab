@@ -18,7 +18,8 @@ for r = 1:n_incoh_processes
     Gamma = incoh_processes.Gammas{r} ;
     rate = incoh_processes.rates(r) ;
     K_incoh(block_indices{i},block_indices{i}) = K_incoh(block_indices{i},block_indices{i}) ...
-        - (0.5*rate) * kron(speye(n_ados(i)),kron(Gamma*(Gamma'),speye(d_hilbs(i)))+kron(speye(d_hilbs(i)),transpose(Gamma*(Gamma')))) ;
+        - (0.5*rate) * kron(speye(n_ados(i)),kron(Gamma*(Gamma'),speye(d_hilbs(i)))...
+        + kron(speye(d_hilbs(i)),transpose(Gamma*(Gamma')))) ;
     K_incoh(block_indices{f},block_indices{i}) = K_incoh(block_indices{f},block_indices{i}) ...
         + rate *  kron(spdiags(ones([n_ados(f),1]),[0],n_ados(f),n_ados(i)),kron(Gamma',transpose(Gamma))) ; 
 end
