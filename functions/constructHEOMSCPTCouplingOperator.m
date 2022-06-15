@@ -75,10 +75,21 @@ for r = 1:n_couplings
         c_B_ts = calculateCorrelationFunction(weights{r},omegas{r},t,full_system.beta,0)...
             .*exp(1.0i * (-Delta_E - lambda_hiT{r})*t - (lambda_hiT{r}/full_system.beta)*(t.*t)) ;
     end
-
+    Gamma = full_system.block_coupling.coupling_matrices ;
     c_ts_r = [c_A_ts;c_B_ts] ;
     c_ts{r} = c_ts_r ;
     ts{r} = t ;
+    int_c_t_A = trapz(t,c_A_ts) ;
+    int_c_t_B = trapz(t,c_B_ts) ;
+    fprintf('Rate term (forward):\n')
+    Gamma{r}'*Gamma{r} * real(int_c_t_A) 
+    fprintf('Shift term (init):\n')
+    Gamma{r}'*Gamma{r} * imag(int_c_t_A) 
+    fprintf('Rate term (back):\n')
+    Gamma{r}*Gamma{r}' * real(int_c_t_B) 
+    fprintf('Shift term (final):\n')
+    Gamma{r}*Gamma{r}' * imag(int_c_t_B) 
+    drawnow
 end
 
 % get general info for constructing the SCPT operator
@@ -107,7 +118,11 @@ if block_coupling_info.method == "truncated NZ"
         n_A = coupled_blocks(r,1) ;
         n_B = coupled_blocks(r,2) ;
         % get the indices of the AB states included in the truncated NZ space
-        ado_inds = find(heom_structure_blocks{n_A}.ado_gammas < block_coupling_info.Gamma_cut_trunc) ;
+        if (numel(block_coupling_info.Gamma_cut_trunc) == 1)
+            ado_inds = find(heom_structure_blocks{n_A}.ado_gammas < block_coupling_info.Gamma_cut_trunc) ;
+        else 
+            ado_inds = find(heom_structure_blocks{n_A}.ado_gammas < block_coupling_info.Gamma_cut_trunc(r)) ;
+        end
         n_trunc_ado = length(ado_inds) ;
         fprintf('n_ado_trunc = %d.\n',n_trunc_ado) ;
         d_AB = d_hilbs(n_A) * d_hilbs(n_B) ;
@@ -288,7 +303,7 @@ if (isfield(full_system.block_coupling,'coupled_blocks_radiative'))
     fprintf('Adding radiative coupling terms.\n')
     n_couplings = size(full_system.block_coupling.coupled_blocks_radiative,1) ;
     for r = 1:n_couplings
-        
+
         n_A = full_system.block_coupling.coupled_blocks_radiative(r,1) ;
         n_B = full_system.block_coupling.coupled_blocks_radiative(r,2) ;
         d_AB = d_hilbs(n_A) * d_hilbs(n_B) ;
@@ -302,6 +317,8 @@ if (isfield(full_system.block_coupling,'coupled_blocks_radiative'))
         id_hilb_B = speye(d_hilb_B) ;
         % construct K for the remaining ados
         % construct the L_sys operators acting on AB and BA spaces
+        H_sys_A = full_system.H_sys{n_A} ;
+        H_sys_B = full_system.H_sys{n_B} ;
         L_sys_AB = -1.0i * kron(H_sys_A,id_hilb_B) +1.0i *kron(id_hilb_A,transpose(H_sys_B)) ;
         L_sys_BA = -1.0i * kron(H_sys_B,id_hilb_A) +1.0i *kron(id_hilb_B,transpose(H_sys_A)) ;
         [P_AB,Lambda_AB] = eig(full(L_sys_AB),'vector') ;
