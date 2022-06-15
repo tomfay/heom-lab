@@ -4,32 +4,28 @@
 
 % Parameters for the problem
 % system hamiltonian parameters
-epsilon = 14780 ;
-epsilon = 14980 ;
-epsilon = 20 ;
+% change as appropriate
+epsilon = 15 ;
 Delta = 5 ;
 % bath parameters
-% beta = 1.0/208.50907518 ;
 beta = 1.0 ;
 % debye bath parameters
-% lambda_D = 220 ;
-lambda_D = 0.1 ;
-% omega_D = 353.6777 ;
-omega_D = 1.0 ;
-% lambda_D = 37 ;
-% omega_D = 30 ;
-% Omega_B = 5 ;
-% gamma_B = 1 ;
-% lambda_B = 0.5 ;
+lambda_D = 2.5 ;
+omega_D = 5.0 ;
+
+% set the choice of terminator Choose as appropriate
+terminator = "low temp correction" ; % original Ishizaki-Tanimura correction
+terminator = "NZ2" ; % Fay's Zwanzig projetion based correction
 
 % dynamics information
-dt = 100e-3 ;
+dt = 1e-3 ;
 n_steps = 20000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-10 ;
 L_max = 3 ;
 M_max = 1 ;
-Gamma_cut = 6.01*pi*omega_D ;
+Gamma_cut = 6.01*pi/beta ;
+Gamma_cut = 7*omega_D ;
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
 O_sys = {[[0,1];[1,0]],[[0,-1.0i];[1.0i,0]],[[1,0];[0,-1]],eye(2)} ;
@@ -81,9 +77,9 @@ heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 % heom_dynamics.heom_truncation.heom_termination = "low temp correction NZ2" ;
 % heom_dynamics.heom_truncation.heom_termination = "low temp correction" ;
 % heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
-heom_dynamics.heom_truncation.heom_termination = "RF2" ;
-% heom_dynamics.heom_truncation.heom_termination = "partial resummed" ;
+% heom_dynamics.heom_truncation.heom_termination = "RF2" ;
 % heom_dynamics.heom_truncation.n_max_resum = 1 ;
+heom_dynamics.heom_truncation.heom_termination = terminator ;
 heom_dynamics.heom_truncation.diagonal_only_term = true ;
 heom_dynamics.heom_truncation.termination_k_max = 200 ;
 
@@ -99,6 +95,8 @@ heom_dynamics.rho_0_sys = rho_0_sys ;
 [O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
 n_t_plot = min([5000,n_steps]) ;
 skip = floor(n_steps/n_t_plot);
+O_t_full = O_t ;
+t_full = t ;
 O_t = O_t(:,1:skip:end) ;
 t = t(1:skip:end) ;
 c_0 = 2.99792458e10 ;
