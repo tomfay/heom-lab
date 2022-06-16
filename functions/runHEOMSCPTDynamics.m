@@ -40,6 +40,7 @@ end
 L = L + K ;
 drawnow ;
 
+
 % add the incoherent processes term if it is specfiied
 if isfield(full_system,'incoh_processes')
     K_incoh = constructIncoherentRateOperator(full_system.incoh_processes,n_ados,d_lious) ;
@@ -72,6 +73,7 @@ for k = 1:n_blocks
 end
 
 % run the dynamics
+fprintf('Starting dynamics...\n')
 integrator = heom_dynamics.integrator ;
 fprintf("Starting dynamics.\n");
 if (heom_dynamics.integrator.method == 'SIA')
@@ -87,5 +89,5 @@ elseif (integrator.method == 'adaptive SIA')
         integrator.krylov_tol) ;
 end
 
-junk = scpt_junk ;
+junk = {scpt_junk,K,block_indices} ;
 end

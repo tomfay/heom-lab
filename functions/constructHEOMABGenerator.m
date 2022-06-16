@@ -51,32 +51,33 @@ for j = 1:n_baths
     V_comm{j} = V_L{j}-V_R{j} ;
 end
 
-% % add matsurbara truncation correction
-% Xi = sparse([],[],[],d_liou,d_liou) ;
-% if (heom_truncation_info.heom_termination == "markovian" )
-%     for j = 1:n_debye_baths
-%         R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) - sum(cs_array_debye(j,2:end)./nus_array_debye(j,2:end)) ;
-%         Xi = Xi - R_j * V_comm{j}*V_comm{j} ;
-%     end
-%     for j = 1:n_OBO_baths
-%         j_OBO = j + n_debye_baths ;
-%         ks = (M+1):1:max([20*M,100]) ;
-%         R_j = sum(calculateCkBOs(heom_bath_info.gamma_OBOs(j),heom_bath_info.Omega_OBOs(j),beta,heom_bath_info.lambda_OBOs(j),ks)) ;
-%         Xi = Xi - R_j * V_comm{j_OBO}*V_comm{j_OBO} ;
-%     end
-%     for j = 1:n_UBO_baths
-%         j_UBO = j + n_debye_baths + n_OBO_baths ;
-%         ks = (M+1):1:max([20*M,100]) ;
-%         R_j = sum(calculateCkBOs(heom_bath_info.gamma_UBOs(j),heom_bath_info.Omega_UBOs(j),beta,heom_bath_info.lambda_UBOs(j),ks)) ;
-%         Xi = Xi - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
-%     end
-% end
-% % add the free system evolution term to the HEOM generator
-% L_heom_AB = kron(id_ados,L_sys_AB+Xi) ;
-
 % add matsurbara truncation correction
 Xi = sparse([],[],[],d_liou,d_liou) ;
 if (heom_truncation_info.heom_termination == "markovian" )
+    for j = 1:n_debye_baths
+        R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) - sum(cs_array_debye(j,2:end)./nus_array_debye(j,2:end)) ;
+        Xi = Xi - R_j * V_comm{j}*V_comm{j} ;
+    end
+    for j = 1:n_OBO_baths
+        j_OBO = j + n_debye_baths ;
+        ks = (M+1):1:max([20*M,100]) ;
+        R_j = sum(calculateCkBOs(heom_bath_info.gamma_OBOs(j),heom_bath_info.Omega_OBOs(j),beta,heom_bath_info.lambda_OBOs(j),ks)) ;
+        Xi = Xi - R_j * V_comm{j_OBO}*V_comm{j_OBO} ;
+    end
+    for j = 1:n_UBO_baths
+        j_UBO = j + n_debye_baths + n_OBO_baths ;
+        ks = (M+1):1:max([20*M,100]) ;
+        R_j = sum(calculateCkBOs(heom_bath_info.gamma_UBOs(j),heom_bath_info.Omega_UBOs(j),beta,heom_bath_info.lambda_UBOs(j),ks)) ;
+        Xi = Xi - R_j * V_comm{j_UBO}*V_comm{j_UBO} ;
+    end
+end
+% add the free system evolution term to the HEOM generator
+L_heom_AB = kron(id_ados,L_sys_AB+Xi) ;
+
+% add matsurbara truncation correction
+Xi = sparse([],[],[],d_heom,d_heom) ;
+if (heom_truncation_info.heom_termination == "markovian" )
+    Xi = sparse([],[],[],d_liou,d_liou) ;
     for j = 1:n_debye_baths
         R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) - sum(cs_array_debye(j,2:end)./nus_array_debye(j,2:end)) ;
         Xi = Xi - R_j * V_comm{j}*V_comm{j} ;
@@ -192,6 +193,8 @@ elseif (heom_truncation_info.heom_termination == "NZ2")
 end
 % add the free system evolution term to the HEOM generator
 L_heom_AB = kron(id_ados,L_sys_AB)+Xi ;
+% L_heom_AB = kron(id_ados,L_sys_AB);
+% L_heom_AB = L_heom_AB+Xi ;
 
 % add the decay terms -sum_jk n_jk nu_jk
 L_heom_AB = L_heom_AB - kron(spdiags([ado_gammas],[0],n_ados,n_ados),id_liou) ;

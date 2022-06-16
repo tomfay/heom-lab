@@ -65,6 +65,7 @@ heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
 heom_dynamics.heom_truncation.termination_k_max = 20 ;
 
+
 % what system observables should be returned
 heom_dynamics.observables = struct ;
 heom_dynamics.observables.system = O_sys ;
