@@ -135,7 +135,6 @@ if block_coupling_info.method == "truncated NZ"
         id_hilb_A = speye(d_hilb_A) ;
         id_hilb_B = speye(d_hilb_B) ;
         inds_trunc = kron(ado_inds*d_AB,ones([d_AB,1])) - repmat(((d_AB-1):-1:0)',[n_trunc_ado,1]);
-        inds_trunc
         inds_trunc_A = kron(ado_inds*d_hilb_A *d_hilb_A,ones([d_hilb_A *d_hilb_A,1])) - repmat(((d_hilb_A*d_hilb_A-1):-1:0)',[n_trunc_ado,1]);
         inds_trunc_B = kron(ado_inds*d_hilb_B *d_hilb_B,ones([d_hilb_B *d_hilb_B,1])) - repmat(((d_hilb_B*d_hilb_B-1):-1:0)',[n_trunc_ado,1]);
         d_trunc = length(inds_trunc) ;
@@ -155,8 +154,16 @@ if block_coupling_info.method == "truncated NZ"
         H_sys_B = full_system.H_sys{n_B} ;
         V_As = heom_bath_info_blocks{n_A}.Vs ;
         V_Bs = heom_bath_info_blocks{n_B}.Vs ;
-        L_AB = constructHEOMABGenerator(H_sys_A,H_sys_B,V_As,V_Bs,heom_bath_info_blocks{n_A},heom_truncation_info,heom_structure_blocks{n_A}) ;
-        L_BA = constructHEOMABGenerator(H_sys_B,H_sys_A,V_Bs,V_As,heom_bath_info_blocks{n_A},heom_truncation_info,heom_structure_blocks{n_A}) ;
+        heom_truncation_info_AB = heom_truncation_info ;
+        if (isfield(block_coupling_info,'include_Xi_AB'))
+            if (~block_coupling_info.include_Xi_AB)
+                heom_truncation_info_AB.heom_termination = "none" ;
+            end
+        else 
+            heom_truncation_info_AB.heom_termination = "none" ;
+        end
+        L_AB = constructHEOMABGenerator(H_sys_A,H_sys_B,V_As,V_Bs,heom_bath_info_blocks{n_A},heom_truncation_info_AB,heom_structure_blocks{n_A}) ;
+        L_BA = constructHEOMABGenerator(H_sys_B,H_sys_A,V_Bs,V_As,heom_bath_info_blocks{n_A},heom_truncation_info_AB,heom_structure_blocks{n_A}) ;
         % truncate these
         L_AB_trunc = S_trunc *  L_AB * (S_trunc') ;
         L_BA_trunc = S_trunc *  L_BA * (S_trunc') ;
@@ -250,7 +257,6 @@ if block_coupling_info.method == "truncated NZ"
         inds_comp = 1:d_heom_AB ;
         is_trunc = ismember(inds_comp,inds_trunc) ;
         inds_comp = inds_comp(~is_trunc) ;
-        inds_comp
         g_A_BA_0(is_trunc) = 0 ;
         g_A_BA_0(is_trunc) = 0 ;
         g_B_AB_0(is_trunc) = 0 ;
