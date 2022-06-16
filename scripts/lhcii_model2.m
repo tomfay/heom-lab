@@ -72,7 +72,7 @@ epsilon_gs = 0 ;
 
 % dynamics information
 dt = 1e-3 ;
-n_steps = 100000 ;
+n_steps = 400000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 2.1 * omega_D_chla ;

@@ -37,18 +37,18 @@ E_LE = [15415
 14960
 14870
 14980 ] ;
-inds_7mer = [2,3,8,9,10,11,12] ;
-inds_7mer = [3,12] ;
-E_LE = E_LE(inds_7mer) ;
-J_LE = J_LE(inds_7mer,inds_7mer);
+% inds_7mer = [2,3,8,9,10,11,12] ;
+% inds_7mer = [3,12] ;
+% E_LE = E_LE(inds_7mer) ;
+% J_LE = J_LE(inds_7mer,inds_7mer);
 chlb_inds = find(E_LE>15000) ;
 chla_inds = find(E_LE<=15000) ;
 n_chla = numel(chla_inds) ;
 
 n_612a = 12 ;
 n_603a = 3 ;
-n_612a = find(inds_7mer==n_612a) ;
-n_603a = find(inds_7mer==n_603a) ;
+% n_612a = find(inds_7mer==n_612a) ;
+% n_603a = find(inds_7mer==n_603a) ;
 % only include Chlorophyll A
 % E_LE = E_LE(chla_inds) ;
 E_LE_min = min(E_LE) ;
@@ -74,7 +74,7 @@ lambda_lut1CT_tot = 5405.0 ;
 lambda_lut2CT_tot = 5052.0 ;
 lambda_lut1CT = lambda_lut1CT_tot - (kappa^2 - 1)*lambda_D_chla ;
 lambda_lut2CT = lambda_lut2CT_tot - (kappa^2 - 1)*lambda_D_chla ;
-omega_CT = omega_D_chla ;
+omega_CT = 30 ;
 Omega_CT = 1500.0 ;
 gamma_CT = 50.0 ; 
 alpha_BO = 0.0 ;
@@ -94,7 +94,7 @@ n_steps = 20000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 2.1 * omega_D_chla ;
-Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,0.1 *[omega_D_chla,omega_D_chla]] ;
+Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,-0.1 *[omega_D_chla,omega_D_chla]] ;
 p = 1 ;
 L_cut = 5.0 ;
 
@@ -205,11 +205,11 @@ full_system.block_coupling.coupling_baths{4} = ...
 
 
 % include the radiative transitions 
-% full_system.block_coupling.coupled_blocks_radiative = [[1,4]] ; % radiatively coupled blocks
-% full_system.block_coupling.coupling_matrices_radiative = {} ; % the x y and z transition operators
-% full_system.block_coupling.coupling_matrices_radiative{1}{1} = [1.595281e-09,-1.456085e-09,1.253448e-09,1.126383e-09,-9.696365e-10,1.603753e-09,1.399653e-09,-1.747717e-09,-1.398388e-09,1.035109e-09,1.579807e-09,-1.865390e-09,-7.671141e-11,-7.642226e-11]' ;
-% full_system.block_coupling.coupling_matrices_radiative{1}{2} = [5.480138e-10,7.146026e-10,1.031499e-09,-5.833511e-10,1.403433e-09,-3.527393e-10,-1.048223e-09,1.605002e-11,-2.287486e-11,7.076459e-10,3.533711e-10,6.992070e-10,-1.943186e-09,2.914235e-10]' ;
-% full_system.block_coupling.coupling_matrices_radiative{1}{3} = [4.668905e-10,-1.268432e-09,1.266744e-09,-1.621951e-09,-3.916758e-10,-6.056222e-10,-7.366596e-11,-9.196225e-11,-1.052244e-09,1.633263e-09,1.272439e-09,-5.207610e-10,6.766861e-10,2.036908e-09]' ;
+full_system.block_coupling.coupled_blocks_radiative = [[1,4]] ; % radiatively coupled blocks
+full_system.block_coupling.coupling_matrices_radiative = {} ; % the x y and z transition operators
+full_system.block_coupling.coupling_matrices_radiative{1}{1} = [1.595281e-09,-1.456085e-09,1.253448e-09,1.126383e-09,-9.696365e-10,1.603753e-09,1.399653e-09,-1.747717e-09,-1.398388e-09,1.035109e-09,1.579807e-09,-1.865390e-09,-7.671141e-11,-7.642226e-11]' ;
+full_system.block_coupling.coupling_matrices_radiative{1}{2} = [5.480138e-10,7.146026e-10,1.031499e-09,-5.833511e-10,1.403433e-09,-3.527393e-10,-1.048223e-09,1.605002e-11,-2.287486e-11,7.076459e-10,3.533711e-10,6.992070e-10,-1.943186e-09,2.914235e-10]' ;
+full_system.block_coupling.coupling_matrices_radiative{1}{3} = [4.668905e-10,-1.268432e-09,1.266744e-09,-1.621951e-09,-3.916758e-10,-6.056222e-10,-7.366596e-11,-9.196225e-11,-1.052244e-09,1.633263e-09,1.272439e-09,-5.207610e-10,6.766861e-10,2.036908e-09]' ;
 
 
 
@@ -284,6 +284,7 @@ heom_dynamics.heom_truncation.diagonal_only_term = true ;
 heom_dynamics.blocking_coupling = struct() ;
 heom_dynamics.block_coupling.method = "truncated NZ" ;
 heom_dynamics.block_coupling.Gamma_cut_trunc = Gamma_cut_trunc ;
+heom_dynamics.block_coupling.include_Xi_AB = false ;
 
 % run the dynamics
 [O_t,t,L,junk] = runHEOMSCPTDynamics(full_system,heom_dynamics) ;
