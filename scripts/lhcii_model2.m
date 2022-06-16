@@ -57,6 +57,9 @@ lambda_lut2CT_tot = 5052.0 ;
 lambda_lut1CT = lambda_lut1CT_tot - (kappa^2 - 1)*lambda_D_chla ;
 lambda_lut2CT = lambda_lut2CT_tot - (kappa^2 - 1)*lambda_D_chla ;
 omega_CT = 30.0 ;
+Omega_CT = 1500.0 ;
+gamma_CT = 50.0 ; 
+alpha_BO = 0.25 ;
 omega_lut1CT = omega_CT ;
 omega_lut2CT = omega_CT ;
 Gamma_lut1CT = 240 ;
@@ -69,16 +72,21 @@ epsilon_gs = 0 ;
 
 % dynamics information
 dt = 1e-3 ;
-n_steps = 10000 ;
+n_steps = 100000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
-Gamma_cut = 3.1 * omega_D_chla ;
-Gamma_cut_trunc = 2.1 *omega_D_chla ;
+Gamma_cut = 2.1 * omega_D_chla ;
+% Gamma_cut_trunc = 2.1 *omega_D_chla ;
+Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,1.1 *[omega_D_chla,omega_D_chla]] ;
 p = 1 ;
 L_cut = 5.0 ;
 
 % parameters for evaluating to AB correlation fction
 t_max = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
+% t_max_CTGS = sqrt((beta/lambda_lut1CT)*log(1/1e-20)) ;
+% n_t_CTGS = ceil(t_max_CTGS/(1e-3/(2e4/(2*pi)))) 
+% n_t = [1000,1000,n_t_CTGS ,n_t_CTGS ] ;
+% n_t =[1000,1000] ;
 n_t = 1000 ;
 n_modes = 512 ; % number of modes used to discretise the spectral density
 
@@ -121,11 +129,19 @@ end
 % baths is a cell array of structs describign each bath
 full_system.beta = beta ;
 
-% information about the different blocks
+ifferent blocks
 full_system.block_coupling = struct() ;
 full_system.block_coupling.E_blocks = [epsilon_LE,epsilon_lut1CT,epsilon_lut2CT,epsilon_gs] ;
 full_system.block_coupling.coupled_blocks = [[1,2];[1,3];[2,4];[3,4]] ;
 full_system.block_coupling.coupling_matrices = {zeros([n_LE,1]),zeros([n_LE,1]),[[Gamma_lut1CT]],[[Gamma_lut2CT]]} ;
+full_system.block_coupling.n_ts = [n_t,n_t,n_t_CTGS,n_t_CTGS] ;
+full_system.block_coupling.t_maxs = [t_max,t_max,t_max_CTGS,t_max_CTGS] ;
+
+% full_system.block_coupling.coupled_blocks = [[1,2];[1,3]] ;
+% full_system.block_coupling.coupling_matrices = {zeros([n_LE,1]),zeros([n_LE,1])} ;
+% full_system.block_coupling.n_ts = [n_t,n_t];
+% full_system.block_coupling.t_maxs = [t_max,t_max];
+
 full_system.block_coupling.coupling_matrices{1}(n_612a) = Gamma_lut1CT ;
 full_system.block_coupling.coupling_matrices{2}(n_603a) = Gamma_lut2CT ;
 full_system.block_coupling.coupling_baths = {} ;
@@ -149,9 +165,27 @@ full_system.block_coupling.coupling_baths{4} = ...
 %     {struct("spectral_density","high temperature","lambda",lambda_lut1CT)} ;
 % full_system.block_coupling.coupling_baths{4} = ...
 %     {struct("spectral_density","high temperature","lambda",lambda_lut2CT)} ;
+% full_system.block_coupling.coupling_baths{1} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut1CT,"lambda_D",(1-alpha_BO)*lambda_lut1CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","BO","Omega",Omega_CT,"lambda",alpha_BO*lambda_lut1CT,...
+%     "gamma",gamma_CT,"n_modes",n_modes)} ;
+% full_system.block_coupling.coupling_baths{2} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut2CT,"lambda_D",(1-alpha_BO)*lambda_lut2CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","BO","Omega",Omega_CT,"lambda",alpha_BO*lambda_lut2CT,...
+%     "gamma",gamma_CT,"n_modes",n_modes)} ;
+% full_system.block_coupling.coupling_baths{3} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut1CT,"lambda_D",(1-alpha_BO)*lambda_lut1CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","BO","Omega",Omega_CT,"lambda",alpha_BO*lambda_lut1CT,...
+%     "gamma",gamma_CT,"n_modes",n_modes)} ;
+% full_system.block_coupling.coupling_baths{4} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut2CT,"lambda_D",(1-alpha_BO)*lambda_lut2CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","BO","Omega",Omega_CT,"lambda",alpha_BO*lambda_lut2CT,...
+%     "gamma",gamma_CT,"n_modes",n_modes)} ;
 
-full_system.block_coupling.n_ts = [n_t,n_t,n_t,n_t] ;
-full_system.block_coupling.t_maxs = [t_max,t_max,t_max,t_max] ;
 
 % include the radiative transitions 
 full_system.block_coupling.coupled_blocks_radiative = [[1,4]] ; % radiatively coupled blocks
@@ -170,6 +204,11 @@ full_system.incoh_processes.Gammas = {} ;
 for n = 1:n_LE
     full_system.incoh_processes.Gammas{n} = sparse([n],[1],[1],n_LE,1) ;
 end
+% add the CT1 -> GS and CT2-> GS incoherent rate steps
+full_system.incoh_processes.coupled_blocks = [full_system.incoh_processes.coupled_blocks; [2,4] ; [3,4]] ;
+k_rec = 5.308837458876146e-01 ; k_CT1GS = k_rec ; k_CT2GS = k_rec ;
+full_system.incoh_processes.rates = [full_system.incoh_processes.rates ; k_CT1GS ; k_CT2GS ] ;
+full_system.incoh_processes.Gammas = [full_system.incoh_processes.Gammas ,{[[1]],[[1]]}] ;
 
 % set up the dynamics struct
 heom_dynamics = struct() ;

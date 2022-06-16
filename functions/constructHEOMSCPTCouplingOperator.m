@@ -135,6 +135,7 @@ if block_coupling_info.method == "truncated NZ"
         id_hilb_A = speye(d_hilb_A) ;
         id_hilb_B = speye(d_hilb_B) ;
         inds_trunc = kron(ado_inds*d_AB,ones([d_AB,1])) - repmat(((d_AB-1):-1:0)',[n_trunc_ado,1]);
+        inds_trunc
         inds_trunc_A = kron(ado_inds*d_hilb_A *d_hilb_A,ones([d_hilb_A *d_hilb_A,1])) - repmat(((d_hilb_A*d_hilb_A-1):-1:0)',[n_trunc_ado,1]);
         inds_trunc_B = kron(ado_inds*d_hilb_B *d_hilb_B,ones([d_hilb_B *d_hilb_B,1])) - repmat(((d_hilb_B*d_hilb_B-1):-1:0)',[n_trunc_ado,1]);
         d_trunc = length(inds_trunc) ;
@@ -249,6 +250,7 @@ if block_coupling_info.method == "truncated NZ"
         inds_comp = 1:d_heom_AB ;
         is_trunc = ismember(inds_comp,inds_trunc) ;
         inds_comp = inds_comp(~is_trunc) ;
+        inds_comp
         g_A_BA_0(is_trunc) = 0 ;
         g_A_BA_0(is_trunc) = 0 ;
         g_B_AB_0(is_trunc) = 0 ;
@@ -261,7 +263,12 @@ if block_coupling_info.method == "truncated NZ"
 
         % construct Gamma operators
         Gamma = full_system.block_coupling.coupling_matrices{r} ;
-        proj_comp_ados = spdiags(heom_structure_blocks{n_A}.ado_gammas >= block_coupling_info.Gamma_cut_trunc,[0],n_ados,n_ados);
+        if (numel(block_coupling_info.Gamma_cut_trunc) == 1)
+            proj_comp_ados = spdiags(heom_structure_blocks{n_A}.ado_gammas >= block_coupling_info.Gamma_cut_trunc,[0],n_ados,n_ados);
+        else 
+            proj_comp_ados = spdiags(heom_structure_blocks{n_A}.ado_gammas >= block_coupling_info.Gamma_cut_trunc(r),[0],n_ados,n_ados);
+        end
+        
         Gamma_L_AA = kron(proj_comp_ados,kron(Gamma',id_hilb_A)) ;
         Gamma_L_BA = kron(proj_comp_ados,kron(Gamma,id_hilb_A)) ;
         Gamma_R_AA = kron(proj_comp_ados,kron(id_hilb_A,transpose(Gamma))) ;

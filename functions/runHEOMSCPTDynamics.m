@@ -33,6 +33,7 @@ end
 [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,heom_dynamics.block_coupling,heom_dynamics.heom_truncation) ;
 L = L + K ;
 
+
 % add the incoherent processes term if it is specfiied
 if isfield(full_system,'incoh_processes')
     K_incoh = constructIncoherentRateOperator(full_system.incoh_processes,n_ados,d_lious) ;
@@ -65,6 +66,7 @@ for k = 1:n_blocks
 end
 
 % run the dynamics
+fprintf('Starting dynamics...\n')
 integrator = heom_dynamics.integrator ;
 if (heom_dynamics.integrator.method == 'SIA')
     [O_t,t, rho_final_heom] = runDynamicsSIADensityOperator(rho_0_heom,L,...
@@ -79,5 +81,5 @@ elseif (integrator.method == 'adaptive SIA')
         integrator.krylov_tol) ;
 end
 
-junk = scpt_junk ;
+junk = {scpt_junk,K,block_indices} ;
 end
