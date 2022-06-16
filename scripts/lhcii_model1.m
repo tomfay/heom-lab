@@ -81,8 +81,8 @@ epsilon_lut2CT = (epsilon_LE+Delta_epsilon_LE(n_603a))+951  ;
 epsilon_gs = 0 ;
 
 % dynamics information
-dt = 1e-3 ;
-n_steps = 10000 ;
+dt = 2e-3 ;
+n_steps = 400000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 3.1 * omega_D_chla ;
@@ -188,10 +188,13 @@ end
 heom_dynamics = struct() ;
 % set the initial condition
 n_init_ex = 8 ;
+n = 12 ;
+psi_n = zeros([n_LE,1]); psi_n(n) = 1 ;
 heom_dynamics.rho_0_sys = {psi_exciton(:,n_init_ex)* psi_exciton(:,n_init_ex)',[[0]],[[0]],[[0]]} ;
-heom_dynamics.rho_0_sys = {(1/n_LE)*eye(n_LE),[[0]],[[0]],[[0]]} ;
-heom_dynamics.rho_0_sys = {zeros([n_LE,n_LE]),[[0]],[[0]],[[0]]} ;
-heom_dynamics.rho_0_sys{1} = full(sparse(chla_inds',chla_inds,(1/n_chla)*ones([n_chla,1]),n_LE,n_LE)) ;
+heom_dynamics.rho_0_sys = {psi_n* psi_n',[[0]],[[0]],[[0]]} ;
+% heom_dynamics.rho_0_sys = {(1/n_LE)*eye(n_LE),[[0]],[[0]],[[0]]} ;
+% heom_dynamics.rho_0_sys = {zeros([n_LE,n_LE]),[[0]],[[0]],[[0]]} ;
+% heom_dynamics.rho_0_sys{1} = full(sparse(chla_inds',chla_inds,(1/n_chla)*ones([n_chla,1]),n_LE,n_LE)) ;
 % heom_dynamics.rho_0_sys{1} = expm(-beta*H_sys_LE)/sum(diag(expm(-beta*H_sys_LE))) ;
 % set up observable arrays
 heom_dynamics.observables = struct() ;

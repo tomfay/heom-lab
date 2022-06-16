@@ -6,9 +6,15 @@ heom_bath_info_blocks = getBathInformationSCPT(full_system) ;
 n_blocks = numel(full_system.H_sys) ;
 % construct the HEOM dynamics genrators for the different blocks
 L_blocks = cell([n_blocks,1]) ; heom_structure_blocks = cell([n_blocks,1]) ;
-for k = 1:n_blocks
+for k = 1:1
     [L_block,heom_structure_block] = constructHEOMGenerator(full_system.H_sys{k},heom_bath_info_blocks{k}, ...
         heom_dynamics.heom_truncation) ;
+    L_blocks{k} = L_block ;
+    heom_structure_blocks{k} = heom_structure_block ;
+end
+for k = 2:n_blocks
+    [L_block,heom_structure_block] = constructHEOMGenerator(full_system.H_sys{k},heom_bath_info_blocks{k}, ...
+        heom_dynamics.heom_truncation,heom_structure_blocks{1}) ;
     L_blocks{k} = L_block ;
     heom_structure_blocks{k} = heom_structure_block ;
 end
@@ -32,6 +38,7 @@ end
 % next add the markovian rate matrix
 [K,scpt_junk] = constructHEOMSCPTCouplingOperator(full_system,heom_structure_blocks,heom_bath_info_blocks,heom_dynamics.block_coupling,heom_dynamics.heom_truncation) ;
 L = L + K ;
+drawnow ;
 
 % add the incoherent processes term if it is specfiied
 if isfield(full_system,'incoh_processes')
@@ -66,6 +73,7 @@ end
 
 % run the dynamics
 integrator = heom_dynamics.integrator ;
+fprintf("Starting dynamics.\n");
 if (heom_dynamics.integrator.method == 'SIA')
     [O_t,t, rho_final_heom] = runDynamicsSIADensityOperator(rho_0_heom,L,...
         integrator.n_steps,integrator.dt,O,integrator.krylov_dim,...
