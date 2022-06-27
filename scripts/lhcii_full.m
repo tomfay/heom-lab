@@ -77,7 +77,7 @@ E_gs = -E_LE_max ;
 
 % dynamics information
 dt = 1e-3 ;
-n_steps = 50000 ;
+n_steps = 10000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 2.1 * omega_D_chla ;
@@ -212,8 +212,9 @@ heom_dynamics.heom_truncation = struct() ;
 heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
 heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 heom_dynamics.heom_truncation.heom_termination = "markovian" ;
-% heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
-% heom_dynamics.heom_truncation.termination_k_max = 20 ;
+heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
+heom_dynamics.heom_truncation.termination_k_max = 200 ;
+heom_dynamics.heom_truncation.diagonal_only = true ;
 % heom_dynamics.heom_truncation = struct() ;
 % heom_dynamics.heom_truncation.truncation_method = "lambda weighted cut-off" ;
 % heom_dynamics.heom_truncation.L_cut = L_cut ;

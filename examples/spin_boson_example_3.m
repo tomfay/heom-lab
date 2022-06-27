@@ -4,38 +4,33 @@
 
 % Parameters for the problem
 % system hamiltonian parameters
-epsilon = 14780 ;
-epsilon = 14980 ;
-epsilon = 15 ;
-Delta = 5 ;
+epsilon = 0.5 ;
+Delta = 1.0 ;
 % bath parameters
-% beta = 1.0/208.50907518 ;
-beta = 1.0 ;
+beta = 0.25 ;
 % debye bath parameters
-% lambda_D = 220 ;
-lambda_D = 5.0 ;
-% omega_D = 353.6777 ;
-omega_D = 5.0 ;
-% lambda_D = 37 ;
-% omega_D = 30 ;
-Omega_B = 2 ;
-gamma_B = 0.5 ;
-lambda_B = 0.5 ;
+lambda_D = 0.06*Delta/(2*pi) ;
+omega_D = 0.05*Delta ;
+alpha = pi/4 ;
+phi = -pi/2 ;
+theta = 3*pi/8 + pi;
 
 % dynamics information
-dt = 1.0e-3 ;
-n_steps = 20000 ;
-krylov_dim = 16 ;
-krylov_tol = 1e-10 ;
-L_max = 4 ;
-M_max = 3 ;
-Gamma_cut = 18.1*omega_D ;
+dt = 5e-2 ;
+n_steps = 2400 ;
+krylov_dim = 8 ;
+krylov_tol = 1e-8 ;
+L_max = 10 ;
+M_max = 1 ;
+% Gamma_cut = 4.1*omega_D ;
+
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
 O_sys = {[[0,1];[1,0]],[[0,-1.0i];[1.0i,0]],[[1,0];[0,-1]],eye(2)} ;
 
 % initial state of the system
-rho_0_sys = [[1,0];[0,0]] ;
+psi = [cos(alpha) ; sin(alpha)*exp(-1.0i*phi)] ;
+rho_0_sys = psi*(psi') ;
 
 % two objects are supplied to the HEOM dynamics function:
 % "full_system" specifies the full Hamiltonian (system + bath) and the
@@ -47,45 +42,35 @@ rho_0_sys = [[1,0];[0,0]] ;
 % the full open quantum system
 full_system = struct ;
 % H_sys contains the system Hamiltonian
-full_system.H_sys = [[epsilon/2,Delta];
-                     [conj(Delta),-epsilon/2]];
+full_system.H_sys = [[epsilon/2,Delta/2];
+                     [Delta/2,-epsilon/2]];
 % baths is a cell array of structs describign each bath
-full_system.baths = {struct("V",[[1,0];[0,-1]],...
+S_op = [[sin(theta),cos(theta)];[cos(theta),-sin(theta)]] ;
+full_system.baths = {struct("V",S_op,...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
-% full_system.baths = {struct("V",[[1,0];[0,0]],...
-%     "spectral_density","UBO","Omega",Omega_B,"lambda",lambda_B,...
-%     "gamma",gamma_B)} ;
 full_system.beta = beta ;
 
 % a struct that contains information about the HEOM dynamics
-heom_dynamics = struct() ;
+heom_dynamics = struct ;
 % integrator information, currently only the short iterative arnoldi is
 % implemented
 heom_dynamics.integrator = struct ;
-heom_dynamics.integrator.method = "SIA" ;
+heom_dynamics.integrator.method = "adaptive SIA" ;
 heom_dynamics.integrator.dt = dt ;
 heom_dynamics.integrator.n_steps = n_steps ;
 heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
-heom_dynamics.heom_truncation = struct() ;
+heom_dynamics.heom_truncation = struct ;
 heom_dynamics.heom_truncation.truncation_method = "depth cut-off" ;
 heom_dynamics.heom_truncation.M_max = M_max ;
 heom_dynamics.heom_truncation.L_max = L_max ;
-heom_dynamics.heom_truncation = struct() ;
-heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
-% heom_dynamics.heom_truncation.heom_termination = "markovian" ;
-% heom_dynamics.heom_truncation.heom_termination = "low temp correction NZ2" ;
-% heom_dynamics.heom_truncation.heom_termination = "low temp correction" ;
-% heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
-heom_dynamics.heom_truncation.heom_termination = "RF2" ;
-% heom_dynamics.heom_truncation.heom_termination = "partial resummed" ;
-% heom_dynamics.heom_truncation.n_max_resum = 1 ;
+% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+heom_dynamics.heom_truncation.heom_termination = "NZ2" ;
+heom_dynamics.heom_truncation.termination_k_max = 100 ;
 heom_dynamics.heom_truncation.diagonal_only_term = true ;
-heom_dynamics.heom_truncation.termination_k_max = 200 ;
-
 
 % what system observables should be returned
 heom_dynamics.observables = struct ;
@@ -96,9 +81,5 @@ heom_dynamics.rho_0_sys = rho_0_sys ;
 
 % run the dynamics
 [O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
-n_t_plot = min([1000,n_steps]) ;
-skip = floor(n_steps/n_t_plot);
-O_t = O_t(:,1:skip:end) ;
-t = t(1:skip:end) ;
 c_0 = 2.99792458e10 ;
 t_ps = t / (2*pi*c_0 * 1e-12) ;

@@ -71,6 +71,11 @@ if (nargin~=4)
     else
         mode_info.n_ubo = 0 ;
     end
+    if isfield(heom_bath_info,"custom_decomp_cs")
+        if(numel(heom_bath_info.custom_decomp_cs) > 0)
+            
+        end
+    end
     if (heom_truncation_info.truncation_method == "frequency cut-off")
         % construct the hierarchy structure with frequency truncation
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);

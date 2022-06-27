@@ -33,21 +33,23 @@ lambda_D_chla = 35 ;
 omega_D_chla = 106.1 ;
 lambda_D_chlb = 35 ;
 omega_D_chlb = 106.1 ;
+% omega_D_chla = 106.1*(166/50) ;
+% omega_D_chlb = 106.1*(166/50) ;
 % lambda_D_chla = 37.0 ;
 % omega_D_chla = 30.0 ;
 % lambda_D_chlb = 48.0 ;
 % omega_D_chlb = 30.0 ;
 beta = 1.0/208.50907518 ;
-beta = (300/77)*1.0/208.50907518 ; 
+% beta = (300/77)*1.0/208.50907518 ; 
 
 
 % dynamics information
 dt = 1.0e-3 ;
-n_steps = 1000 ;
+n_steps = 200 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-10 ;
 % Gamma_cut =  3.01* omega_D_chla ;
-Gamma_cut = (2*pi/beta)*2.01 ;
+Gamma_cut = (1*pi/beta)*2.01 ;
 L_max = 3 ;
 M_max = 1 ;
 
@@ -82,7 +84,7 @@ heom_dynamics = struct() ;
 % set the initial condition
 
 heom_dynamics.rho_0_sys = psi_exciton(:,end)* psi_exciton(:,end)' ;
-n_init_site = 6 ;
+n_init_site = 1 ;
 heom_dynamics.rho_0_sys = zeros([n_LE,n_LE]) ;
 heom_dynamics.rho_0_sys(n_init_site,n_init_site) = 1.0 ;
 

@@ -60,7 +60,7 @@ H_sys_LE(1:(n_LE),1:(n_LE)) = H_sys_LE(1:(n_LE),1:(n_LE)) + J_LE ;
 [psi_exciton,E_exciton] = eig(H_sys_LE,'vector') ;
 
 % set up explicit bath parameters
-kappa = 1.0 ;
+kappa = 0.0 ;
 lambda_D_chla = 220.0 ;
 omega_D_chla = 353.6777 ;
 lambda_D_chlb = 220.0 ;
@@ -90,11 +90,11 @@ epsilon_gs = 0 ;
 
 % dynamics information
 dt = 2e-3 ;
-n_steps = 20000 ;
+n_steps = 100000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 2.1 * omega_D_chla ;
-Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,-0.1 *[omega_D_chla,omega_D_chla]] ;
+Gamma_cut_trunc = [1.1 *[omega_D_chla,omega_D_chla],-0.1 *[omega_D_chla,omega_D_chla]] ;
 p = 1 ;
 L_cut = 5.0 ;
 
@@ -202,7 +202,17 @@ full_system.block_coupling.coupling_baths{4} = ...
 %     struct("spectral_density","BO","Omega",Omega_CT,"lambda",alpha_BO*lambda_lut2CT,...
 %     "gamma",gamma_CT,"n_modes",n_modes)} ;
 
-
+% full_system.block_coupling.coupling_baths{3} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut1CT,"lambda_D",lambda_lut1CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","debye","omega_D",omega_D_chla,"lambda_D",lambda_D_chla,...
+%     "n_modes",n_modes)} ;
+% full_system.block_coupling.coupling_baths{4} = ...
+%     {struct("spectral_density","debye","omega_D",omega_lut2CT,"lambda_D",lambda_lut2CT,...
+%     "n_modes",n_modes),...
+%     struct("spectral_density","debye","omega_D",omega_D_chla,"lambda_D",lambda_D_chla,...
+%     "n_modes",n_modes)} ;
+% full_system.block_coupling.E_blocks(4) = full_system.block_coupling.E_blocks(4) + lambda_D_chla ;
 
 % include the radiative transitions 
 full_system.block_coupling.coupled_blocks_radiative = [[1,4]] ; % radiatively coupled blocks
@@ -284,7 +294,7 @@ heom_dynamics.heom_truncation.diagonal_only_term = true ;
 heom_dynamics.blocking_coupling = struct() ;
 heom_dynamics.block_coupling.method = "truncated NZ" ;
 heom_dynamics.block_coupling.Gamma_cut_trunc = Gamma_cut_trunc ;
-heom_dynamics.block_coupling.include_Xi_AB = false ;
+heom_dynamics.block_coupling.include_Xi_AB = true ;
 
 % run the dynamics
 [O_t,t,L,junk] = runHEOMSCPTDynamics(full_system,heom_dynamics) ;

@@ -59,7 +59,7 @@ lambda_lut2CT = lambda_lut2CT_tot - (kappa^2 - 1)*lambda_D_chla ;
 omega_CT = 30.0 ;
 Omega_CT = 1500.0 ;
 gamma_CT = 50.0 ; 
-alpha_BO = 0.25 ;
+alpha_BO = 0.0 ;
 omega_lut1CT = omega_CT ;
 omega_lut2CT = omega_CT ;
 Gamma_lut1CT = 240 ;
@@ -71,20 +71,20 @@ epsilon_lut2CT = (epsilon_LE+Delta_epsilon_LE(n_603a))+951  ;
 epsilon_gs = 0 ;
 
 % dynamics information
-dt = 1e-3 ;
-n_steps = 400000 ;
+dt = 2e-3 ;
+n_steps = 100000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-8 ;
 Gamma_cut = 2.1 * omega_D_chla ;
 % Gamma_cut_trunc = 2.1 *omega_D_chla ;
-Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,1.1 *[omega_D_chla,omega_D_chla]] ;
+Gamma_cut_trunc = [1.1 *omega_D_chla,1.1 *omega_D_chla,-1.1 *[omega_D_chla,omega_D_chla]] ;
 p = 1 ;
 L_cut = 5.0 ;
 
 % parameters for evaluating to AB correlation fction
 t_max = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
-% t_max_CTGS = sqrt((beta/lambda_lut1CT)*log(1/1e-20)) ;
-% n_t_CTGS = ceil(t_max_CTGS/(1e-3/(2e4/(2*pi)))) 
+t_max_CTGS = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
+n_t_CTGS = ceil(t_max_CTGS/(1e-3/(2e4/(2*pi)))) ;
 % n_t = [1000,1000,n_t_CTGS ,n_t_CTGS ] ;
 % n_t =[1000,1000] ;
 n_t = 1000 ;
@@ -129,7 +129,7 @@ end
 % baths is a cell array of structs describign each bath
 full_system.beta = beta ;
 
-ifferent blocks
+% d ifferent blocks
 full_system.block_coupling = struct() ;
 full_system.block_coupling.E_blocks = [epsilon_LE,epsilon_lut1CT,epsilon_lut2CT,epsilon_gs] ;
 full_system.block_coupling.coupled_blocks = [[1,2];[1,3];[2,4];[3,4]] ;
