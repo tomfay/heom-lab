@@ -33,6 +33,7 @@ if (nargin~=4)
     mode_info.M = M ;
 
     if (numel(heom_bath_info.lambda_Ds)>0)
+        n_debye = numel(heom_bath_info.lambda_Ds) ;
         [nus_array_debye,cs_array_debye] = generateNusAndCsDebye(heom_bath_info.omega_Ds,...
             heom_bath_info.lambda_Ds,heom_bath_info.beta,M) ;
         n_debye = numel(nus_array_debye) ;
@@ -71,11 +72,33 @@ if (nargin~=4)
     else
         mode_info.n_ubo = 0 ;
     end
-    if isfield(heom_bath_info,"custom_decomp_cs")
-        if(numel(heom_bath_info.custom_decomp_cs) > 0)
-            
+
+    if (numel(heom_bath_info.lambda_Ds_pade)>0)
+        n_debye_pade_baths = numel(heom_bath_info.lambda_Ds_pade) ;
+        mode_info.N_pade = [] ;
+        for j = 1:n_debye_pade_baths 
+            [nus_array,cs_array,cbars_array,Delta] = constructPadeDecomp(heom_bath_info.omega_Ds_pade(j),...
+                heom_bath_info.lambda_Ds_pade(j),heom_bath_info.beta,heom_bath_info.N_pade(j),heom_bath_info.pade_approximants(j)) ;
+            nus = [nus,nus_array] ;
+            cs = [cs,cs_array] ;
+            cbars = [cbars,cs_array] ;
+            Delta_pade(j) = Delta ;
+            lambdas = [lambdas, heom_bath_info.lambda_Ds_pade(j)] ;
+            mode_info.N_pade = heom_bath_info.N_pade(j) ; 
         end
+        n_debye_pade = sum((mode_info.N_pade+1)) ;
+        
+       
+        mode_info.n_debye_pade = n_debye_pade ;
+        
+
+    else
+        mode_info.n_debye_pade = 0 ;
+        mode_info.N_pade = [] ;
+        cs_array_debye_pade = [] ;
+        nus_array_debye_pade = [] ;
     end
+
     if (heom_truncation_info.truncation_method == "frequency cut-off")
         % construct the hierarchy structure with frequency truncation
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);
@@ -90,10 +113,11 @@ if (nargin~=4)
         % uses the lambda weighted cut-off
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyLambdaWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs,sqrt(lambdas/heom_bath_info.beta));
     end
+    
+    
 
     % create an array of the coupled mode indices
     coupled_bath_indices = getCoupledBathIndices(coupled_mode_indices,mode_info) ;
-
     heom_structure = struct() ;
     heom_structure.ado_gammas = ado_gammas ;
     heom_structure.ado_indices = ado_indices ;
@@ -151,6 +175,7 @@ n_baths = length(V) ;
 n_debye_baths = numel(heom_bath_info.lambda_Ds) ;
 n_OBO_baths = numel(heom_bath_info.lambda_OBOs) ;
 n_UBO_baths = numel(heom_bath_info.lambda_UBOs) ;
+n_debye_pade_baths = numel(heom_bath_info.lambda_Ds_pade) ;
 n_couplings = size(lower_indices,1) ;
 
 fprintf('N_ado = %d, M = %d\n',[n_ados,M]) ;
@@ -315,6 +340,18 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
     Xi = Xi + kron(id_ados,Xi_markov) ;
 
 end
+% add the Pade white-noise term
+% use the standard Markovian approximation for all modes with k>k_max ;
+if (numel(heom_bath_info.lambda_Ds_pade)>0)
+    Xi_pade = zeros([d_liou,d_liou]) ;
+    for j = 1:n_debye_pade_baths      
+        j_debye_pade = j + n_debye_baths + n_OBO_baths + n_UBO_baths ;
+        R_j = Delta_pade(j) ;                  
+        Xi_pade = Xi_pade - R_j * V_comm{j_debye_pade}*V_comm{j_debye_pade} ;
+    end
+    Xi = Xi + kron(id_ados,Xi_pade) ;
+end
+
 % add the free system evolution term to the HEOM generator
 L_heom = kron(id_ados,L_sys)+Xi ;
 

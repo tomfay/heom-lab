@@ -5,21 +5,22 @@
 % Parameters for the problem
 % system hamiltonian parameters
 % change as appropriate
-epsilon = 15 ;
+epsilon = 20 ;
 Delta = 5 ;
 % bath parameters
 beta = 1.0 ;
 % debye bath parameters
-lambda_D = 2.5 ;
-omega_D = 5.0 ;
+lambda_D = 0.1 ;
+omega_D = 1.0 ;
 
 % set the choice of terminator Choose as appropriate
 terminator = "low temp correction" ; % original Ishizaki-Tanimura correction
 terminator = "NZ2" ; % Fay's Zwanzig projetion based correction
+% terminator = "none" ;
 
 % dynamics information
-dt = 1e-3 ;
-n_steps = 20000 ;
+dt = 1e-2 ;
+n_steps = 200000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-10 ;
 L_max = 3 ;
@@ -48,6 +49,8 @@ full_system.H_sys = [[epsilon/2,Delta];
 % baths is a cell array of structs describign each bath
 full_system.baths = {struct("V",[[1,0];[0,-1]],...
     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
+% full_system.baths = {struct("V",[[1,0];[0,-1]],...
+%     "spectral_density","debye (pade)","omega_D",omega_D,"lambda_D",lambda_D,"N_pade",M_max,"approximant_type","[N/N]")} ;
 % full_system.baths = {struct("V",[[1,0];[0,0]],...
 %     "spectral_density","UBO","Omega",Omega_B,"lambda",lambda_B,...
 %     "gamma",gamma_B)} ;
@@ -65,14 +68,14 @@ heom_dynamics.integrator.krylov_dim = krylov_dim ;
 heom_dynamics.integrator.krylov_tol = krylov_tol ;
 
 % hierarchy trunction information
-% heom_dynamics.heom_truncation = struct ;
-% heom_dynamics.heom_truncation.truncation_method = "depth cut-off" ;
-% heom_dynamics.heom_truncation.M_max = M_max ;
-% heom_dynamics.heom_truncation.L_max = L_max ;
+heom_dynamics.heom_truncation = struct ;
+heom_dynamics.heom_truncation.truncation_method = "depth cut-off" ;
+heom_dynamics.heom_truncation.M_max = M_max ;
+heom_dynamics.heom_truncation.L_max = L_max ;
 % heom_dynamics.heom_truncation.heom_termination = "markovian" ;
-heom_dynamics.heom_truncation = struct() ;
-heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
-heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
+% heom_dynamics.heom_truncation = struct() ;
+% heom_dynamics.heom_truncation.truncation_method = "frequency cut-off" ;
+% heom_dynamics.heom_truncation.Gamma_cut = Gamma_cut ;
 % heom_dynamics.heom_truncation.heom_termination = "markovian" ;
 % heom_dynamics.heom_truncation.heom_termination = "low temp correction NZ2" ;
 % heom_dynamics.heom_truncation.heom_termination = "low temp correction" ;

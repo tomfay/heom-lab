@@ -7,6 +7,7 @@ n_baths = numel(baths) ;
 lambda_Ds = [] ; omega_Ds = [] ;
 lambda_OBOs = [] ; Omega_OBOs = [] ; gamma_OBOs = [] ;
 lambda_UBOs = [] ; Omega_UBOs = [] ; gamma_UBOs = [] ;
+lambda_Ds_pade = [] ; omega_Ds_pade = [] ; pade_approximants = [] ; N_pade = [] ;
 Vs = {} ;
 
 for i = 1:n_baths
@@ -16,6 +17,7 @@ for i = 1:n_baths
         Vs = [Vs,{baths{i}.V}] ; 
     end
 end
+
 
 for i = 1:n_baths
     if (baths{i}.spectral_density == "OBO")
@@ -35,6 +37,16 @@ for i = 1:n_baths
     end
 end
 
+for i = 1:n_baths
+    if (baths{i}.spectral_density == "debye (pade)")
+        lambda_Ds_pade = [lambda_Ds_pade,baths{i}.lambda_D] ;
+        omega_Ds_pade = [omega_Ds_pade,baths{i}.omega_D] ;
+        pade_approximants = [pade_approximants,baths{i}.approximant_type ]; 
+        N_pade = [N_pade,baths{i}.N_pade] ;
+        Vs = [Vs,{baths{i}.V}] ; 
+    end
+end
+
 heom_bath_info = struct ;
 heom_bath_info.n_baths = n_baths ;
 heom_bath_info.Vs = Vs ;
@@ -47,5 +59,10 @@ heom_bath_info.lambda_UBOs = lambda_UBOs ;
 heom_bath_info.Omega_UBOs = Omega_UBOs ;
 heom_bath_info.gamma_UBOs = gamma_UBOs ;
 heom_bath_info.beta = full_system.beta ;
+heom_bath_info.lambda_Ds_pade = lambda_Ds_pade ;
+heom_bath_info.omega_Ds_pade = omega_Ds_pade ;
+heom_bath_info.N_pade = N_pade ;
+heom_bath_info.pade_approximants = pade_approximants ;
+
 
 end
