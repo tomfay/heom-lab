@@ -76,9 +76,13 @@ if (nargin~=4)
     if (numel(heom_bath_info.lambda_Ds_pade)>0)
         n_debye_pade_baths = numel(heom_bath_info.lambda_Ds_pade) ;
         mode_info.N_pade = [] ;
+        nus_pade = {} ;
+        cs_pade = {} ;
+        cbars_pade = {} ;
         for j = 1:n_debye_pade_baths 
             [nus_array,cs_array,cbars_array,Delta] = constructPadeDecomp(heom_bath_info.omega_Ds_pade(j),...
                 heom_bath_info.lambda_Ds_pade(j),heom_bath_info.beta,heom_bath_info.N_pade(j),heom_bath_info.pade_approximants(j)) ;
+            nus_pade{j} = nus_array ; cs_pade{j} = cs_array ; cbars_pade{j} = cs_array ;
             nus = [nus,nus_array] ;
             cs = [cs,cs_array] ;
             cbars = [cbars,cs_array] ;
@@ -270,16 +274,36 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
             heom_bath_info.lambda_UBOs,heom_bath_info.Omega_UBOs,heom_bath_info.beta,k_max) ;
         n_UBO_term = (k_max-M)*n_UBO_baths ;
         mode_info.n_ubo_term = n_UBO_term ;
+        
         for j = 1:n_UBO_baths
             j_bath = j+n_debye_baths+n_OBO_baths ;
             nus_term{j_bath} = reshape(transpose(nus_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
             cs_term{j_bath} = reshape(transpose(cs_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
             cbars_term{j_bath} = reshape(transpose(cbars_array_UBO_term(j,(M+3):end)),[1,(k_max-M)]) ;
+            
         end
+        
     else
         mode_info.n_ubo_term = 0 ;
     end
-    n_NZ2_term = mode_info.n_debye_term + mode_info.n_obo_term + mode_info.n_ubo_term ;
+    if (numel(heom_bath_info.lambda_Ds_pade)>0)
+        n_debye_pade_term = 0 ;
+        for j = 1:n_debye_pade_baths
+            j_bath = j+n_debye_baths+n_OBO_baths+n_UBO_baths ;
+            [nus_array_padecorr,cs_array_padecorr] = generateNusAndCsDebye(heom_bath_info.omega_Ds_pade(j),...
+                heom_bath_info.lambda_Ds_pade(j),heom_bath_info.beta,k_max) ;
+            nus_term{j_bath} = [nus_pade{j}  ,  nus_array_padecorr ] ;
+            cs_term{j_bath} = [-cs_pade{j},cs_array_padecorr] ;
+            cbars_term{j_bath} = [-cs_pade{j},cs_array_padecorr] ;
+            n_debye_pade_term = n_debye_pade_term + numel(nus_term{j_bath}) ;
+        end
+        mode_info.n_debye_pade_term = n_debye_pade_term ;
+    else
+        mode_info.n_debye_pade_term = 0 ;
+    end
+
+
+    n_NZ2_term = mode_info.n_debye_term + mode_info.n_obo_term + mode_info.n_ubo_term + mode_info.n_debye_pade_term ;
 
     for j = 1:n_baths
         V_comm_Pi_sys{j} = V_comm{j} * Pi_sys ;
@@ -295,7 +319,7 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
         for J = 1:n_ados
             J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
             for j =1:n_baths
-                n_jks_term = zeros([1,k_max-M]) ;
+                n_jks_term = zeros(size(cs_term{j})) ;
                 Xi(J_block,J_block) = Xi(J_block,J_block) ...
                     - V_comm_Pi_sys{j} * ((sum(((n_jks_term+1).*cs_term{j})./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_L{j})...
                     - (sum(((n_jks_term+1).*conj(cbars_term{j}))./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_R{j}));
@@ -342,7 +366,10 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
 end
 % add the Pade white-noise term
 % use the standard Markovian approximation for all modes with k>k_max ;
-if (numel(heom_bath_info.lambda_Ds_pade)>0)
+if ((numel(heom_bath_info.lambda_Ds_pade)>0)&&(~(heom_truncation_info.heom_termination == "RF2") ...
+        && ~(heom_truncation_info.heom_termination == "NZ2") && ~(heom_truncation_info.heom_termination == "low temp correction RF2")...
+        && ~(heom_truncation_info.heom_termination == "low temp correction NZ2") ))
+    fprintf('Adding white noise Pade term.')
     Xi_pade = zeros([d_liou,d_liou]) ;
     for j = 1:n_debye_pade_baths      
         j_debye_pade = j + n_debye_baths + n_OBO_baths + n_UBO_baths ;
@@ -350,6 +377,7 @@ if (numel(heom_bath_info.lambda_Ds_pade)>0)
         Xi_pade = Xi_pade - R_j * V_comm{j_debye_pade}*V_comm{j_debye_pade} ;
     end
     Xi = Xi + kron(id_ados,Xi_pade) ;
+
 end
 
 % add the free system evolution term to the HEOM generator

@@ -16,6 +16,7 @@ omega_D = 1.0 ;
 % set the choice of terminator Choose as appropriate
 terminator = "low temp correction" ; % original Ishizaki-Tanimura correction
 terminator = "NZ2" ; % Fay's Zwanzig projetion based correction
+% terminator = "low temp correction NZ2" ;
 % terminator = "none" ;
 
 % dynamics information
@@ -24,9 +25,9 @@ n_steps = 200000 ;
 krylov_dim = 16 ;
 krylov_tol = 1e-10 ;
 L_max = 3 ;
-M_max = 1 ;
+M_max = 2 ;
 Gamma_cut = 6.01*pi/beta ;
-Gamma_cut = 7*omega_D ;
+Gamma_cut = 80*omega_D ;
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
 O_sys = {[[0,1];[1,0]],[[0,-1.0i];[1.0i,0]],[[1,0];[0,-1]],eye(2)} ;
@@ -47,10 +48,10 @@ full_system = struct ;
 full_system.H_sys = [[epsilon/2,Delta];
                      [Delta,-epsilon/2]];
 % baths is a cell array of structs describign each bath
-full_system.baths = {struct("V",[[1,0];[0,-1]],...
-    "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
 % full_system.baths = {struct("V",[[1,0];[0,-1]],...
-%     "spectral_density","debye (pade)","omega_D",omega_D,"lambda_D",lambda_D,"N_pade",M_max,"approximant_type","[N/N]")} ;
+%     "spectral_density","debye","omega_D",omega_D,"lambda_D",lambda_D)} ;
+full_system.baths = {struct("V",[[1,0];[0,-1]],...
+    "spectral_density","debye (pade)","omega_D",omega_D,"lambda_D",lambda_D,"N_pade",M_max,"approximant_type","[N/N]")} ;
 % full_system.baths = {struct("V",[[1,0];[0,0]],...
 %     "spectral_density","UBO","Omega",Omega_B,"lambda",lambda_B,...
 %     "gamma",gamma_B)} ;
