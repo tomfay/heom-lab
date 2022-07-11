@@ -1,4 +1,9 @@
 function [x,w]=generateQuadratureGL(N,a,b)
+% adapted from:
+% Greg von Winckel (2022). Legendre-Gauss Quadrature Weights and Nodes
+%  (https://www.mathworks.com/matlabcentral/fileexchange/4540-legendre-gauss-quadrature-weights-and-nodes),
+%  MATLAB Central File Exchange. Retrieved July 11, 2022.
+
 % lgwt.m
 %
 % This script is for computing definite integrals using Legendre-Gauss 
@@ -19,7 +24,8 @@ y=cos((2*(0:N)'+1)*pi/(2*N+2))+(0.27/N1)*sin(pi*xu*N/N2);
 % Legendre-Gauss Vandermonde Matrix
 L=zeros(N1,N2);
 % Derivative of LGVM
-Lp=zeros(N1,N2);
+% Lp=zeros(N1,N2);
+Lp = zeros([N1,1]) ;
 % Compute the zeros of the N+1 Legendre Polynomial
 % using the recursion relation and the Newton-Raphson method
 y0=2;
@@ -28,10 +34,10 @@ while max(abs(y-y0))>eps
     
     
     L(:,1)=1;
-    Lp(:,1)=0;
+%     Lp(:,1)=0;
     
     L(:,2)=y;
-    Lp(:,2)=1;
+%     Lp(:,2)=1;
     
     for k=2:N1
         L(:,k+1)=( (2*k-1)*y.*L(:,k)-(k-1)*L(:,k-1) )/k;
