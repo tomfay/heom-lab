@@ -9,3 +9,8 @@ heom-lab provides a matlab implementation of the HEOM method including some non-
 * Dynamics with Debye spectral densities as well as underdamped and overdamped Brownian oscillator baths.
 * Integration of the equations of motion with an adaptive short iterative Arnoldi (SIA) integrator.
 * Truncation of the hierarchy with the standard level-based truncation, as well as more efficient truncation schemes for larger reorganisation energy/high temperature problems based on frequency cut-off of the hierarchy and a coupling/frequency weighted scheme.
+* Implementation of new low temperature correction schemes for the HEOM.
+* Implementation of a hybrid HEOM/QME method for treating coupled exciton and charge transfer dynamics in light harvesting complexes.
+
+## Examples
+I strongly recommend that you take a look in the examples folder for scripts showing how heom-lab can be used. Examples include applications to the spin-boson model and the FMO (Fenna-Matthews-Olson) complex.
