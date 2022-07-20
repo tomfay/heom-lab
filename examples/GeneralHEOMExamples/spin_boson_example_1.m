@@ -12,14 +12,16 @@ beta = 1.0 ;
 lambda_D = 0.5 ;
 omega_D = 2.0 ;
 
-% dynamics information
+% dynamics information - parameters for the Short-Iterative Arnoldi
+% Integrator
 dt = 1e-2 ;
 n_steps = 1000 ;
 krylov_dim = 8 ;
 krylov_tol = 1e-8 ;
-L_max = 6 ;
+% parmeters for heirarchy truncation using L/M truncation
+L_max = 6 ; 
 M_max = 4 ;
-% Gamma_cut = 4.1*omega_D ;
+
 
 % matrices of system observable operators to be returned, sigma_x, sigma_y
 % sigma_z, and 1
@@ -74,3 +76,14 @@ heom_dynamics.rho_0_sys = rho_0_sys ;
 
 % run the dynamics
 [O_t,t] = runHEOMDynamics(full_system,heom_dynamics) ;
+
+% plot sigma_alpha(t)
+
+ylabels = {'\langle\sigma_x(\itt\rm)\rangle','\langle\sigma_y(\itt\rm)\rangle','\langle\sigma_z(\itt\rm)\rangle'};
+figure
+for i = 1:3
+subplot(3,1,i)
+plot(t,O_t(i,:))
+xlabel('\itt\rm')
+ylabel(ylabels{i})
+end
