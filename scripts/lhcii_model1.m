@@ -60,15 +60,15 @@ H_sys_LE(1:(n_LE),1:(n_LE)) = H_sys_LE(1:(n_LE),1:(n_LE)) + J_LE ;
 [psi_exciton,E_exciton] = eig(H_sys_LE,'vector') ;
 
 % set up explicit bath parameters
-kappa = 0.0 ;
-lambda_D_chla = 220.0 ;
-omega_D_chla = 353.6777 ;
-lambda_D_chlb = 220.0 ;
-omega_D_chlb = 353.6777 ;
-% lambda_D_chla = 37.0 ;
-% omega_D_chla = 30.0 ;
-% lambda_D_chlb = 48.0 ;
-% omega_D_chlb = 30.0 ;
+kappa = 1.0 ;
+% lambda_D_chla = 220.0 ;
+% omega_D_chla = 353.6777 ;
+% lambda_D_chlb = 220.0 ;
+% omega_D_chlb = 353.6777 ;
+lambda_D_chla = 37.0 ;
+omega_D_chla = 30.0 ;
+lambda_D_chlb = 48.0 ;
+omega_D_chlb = 30.0 ;
 beta = 1.0/208.50907518 ;
 lambda_lut1CT_tot = 5405.0 ;
 lambda_lut2CT_tot = 5052.0 ;
@@ -90,9 +90,9 @@ epsilon_gs = 0 ;
 
 % dynamics information
 dt = 2e-3 ;
-n_steps = 100000 ;
+n_steps = 1000000 ;
 krylov_dim = 16 ;
-krylov_tol = 1e-8 ;
+krylov_tol = 1e-6 ;
 Gamma_cut = 2.1 * omega_D_chla ;
 Gamma_cut_trunc = [1.1 *[omega_D_chla,omega_D_chla],-0.1 *[omega_D_chla,omega_D_chla]] ;
 p = 1 ;
@@ -103,7 +103,7 @@ t_max = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
 t_max_CTGS = sqrt((beta/lambda_lut1CT)*log(1/1e-10)) ;
 n_t_CTGS = ceil(t_max_CTGS/(1e-3/(2e4/(2*pi)))) ;
 % n_t = [1000,1000,n_t_CTGS ,n_t_CTGS ] ;
-n_t =1000 ;
+n_t = 1000 ;
 n_modes = 512 ; % number of modes used to discretise the spectral density
 
 % the full_system object contains all information about the Hamiltonian of

@@ -8,6 +8,7 @@ n_blocks = numel(full_system.H_sys) ;
 lambda_Ds = [] ; omega_Ds = [] ;
 lambda_OBOs = [] ; Omega_OBOs = [] ; gamma_OBOs = [] ;
 lambda_UBOs = [] ; Omega_UBOs = [] ; gamma_UBOs = [] ;
+lambda_Ds_pade = [] ; omega_Ds_pade = [] ; pade_approximants = [] ; N_pade = [] ;
 Vs = {} ;
 
 for i = 1:n_baths
@@ -39,6 +40,16 @@ for i = 1:n_baths
     end
 end
 
+for i = 1:n_baths
+    if (baths{i}.spectral_density == "debye (pade)")
+        lambda_Ds_pade = [lambda_Ds_pade,baths{i}.lambda_D] ;
+        omega_Ds_pade = [omega_Ds_pade,baths{i}.omega_D] ;
+        pade_approximants = [pade_approximants,baths{i}.approximant_type ]; 
+        N_pade = [N_pade,baths{i}.N_pade] ;
+        Vs = [Vs,{baths{i}.V}] ; 
+    end
+end
+
 heom_bath_info_blocks = {} ;
 for k = 1:n_blocks
     heom_bath_info = struct() ;
@@ -56,6 +67,10 @@ for k = 1:n_blocks
     for j = 1:n_baths
         heom_bath_info.Vs{j} = [Vs{j}{k}] ;
     end
+    heom_bath_info.lambda_Ds_pade = lambda_Ds_pade ;
+    heom_bath_info.omega_Ds_pade = omega_Ds_pade ;
+    heom_bath_info.N_pade = N_pade ;
+    heom_bath_info.pade_approximants = pade_approximants ;
     heom_bath_info_blocks = [heom_bath_info_blocks,{heom_bath_info}] ;
 end
 
