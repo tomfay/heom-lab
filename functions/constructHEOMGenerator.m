@@ -327,7 +327,8 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
         end
     elseif (heom_truncation_info.heom_termination == "RF2" || heom_truncation_info.heom_termination == "low temp correction RF2")
         fprintf("adding RF term.\n")
-        Xi_RF = zeros([d_liou,d_liou]) ;
+%         Xi_RF = zeros([d_liou,d_liou]) ;
+        Xi_RF = sparse([],[],[],d_liou,d_liou) ;
         Delta_lambda_sys = lambda_sys - transpose(lambda_sys) ;
         for j =1:n_baths
             A_j = zeros([d_liou,d_liou]) ;
@@ -343,7 +344,8 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
         Xi = kron(id_ados,Xi_RF) ;
     end
     % use the standard Markovian approximation for all modes with k>k_max ;
-    Xi_markov = zeros([d_liou,d_liou]) ;
+%     Xi_markov = zeros([d_liou,d_liou]) ;
+    Xi_markov = sparse([],[],[],d_liou,d_liou) ;
     for j = 1:n_debye_baths
         R_j = 2.0*heom_bath_info.lambda_Ds(j)/(beta*heom_bath_info.omega_Ds(j)) - heom_bath_info.lambda_Ds(j)*cot(beta*heom_bath_info.omega_Ds(j)/2) ...
             - sum([cs_array_debye(j,2:end),cs_term{j}]./[nus_array_debye(j,2:end),nus_term{j}]) ;
@@ -369,8 +371,9 @@ end
 if ((numel(heom_bath_info.lambda_Ds_pade)>0)&&(~(heom_truncation_info.heom_termination == "RF2") ...
         && ~(heom_truncation_info.heom_termination == "NZ2") && ~(heom_truncation_info.heom_termination == "low temp correction RF2")...
         && ~(heom_truncation_info.heom_termination == "low temp correction NZ2") ))
-    fprintf('Adding white noise Pade term.')
-    Xi_pade = zeros([d_liou,d_liou]) ;
+    fprintf('Adding white noise Pade term.\n')
+%     Xi_pade = zeros([d_liou,d_liou]) ;
+    Xi_pade = sparse([],[],[],d_liou,d_liou) ;
     for j = 1:n_debye_pade_baths      
         j_debye_pade = j + n_debye_baths + n_OBO_baths + n_UBO_baths ;
         R_j = Delta_pade(j) ;                  
