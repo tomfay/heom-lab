@@ -23,7 +23,9 @@ n_R = 100 ;
 d = n_q * n_R ;
 R_range = [-5,5] ;
 q_range = [-100,100] ;
-[H,H_no_ls,H_R,H_q,R,q] = constructCavityHamiltonian(omega_cav,M,chi,V_params,mu_params,n_R,n_q,R_range,q_range,eta,omega_D) ;
+% [H,H_no_ls,H_R,H_q,R,q] = constructCavityHamiltonian(omega_cav,M,chi,V_params,mu_params,n_R,n_q,R_range,q_range,eta,omega_D) ;
+[H,H_no_ls,H_R,H_q,R] = constructCavityHamiltonian2(omega_cav,M,chi,V_params,mu_params,n_R,n_q,R_range,eta,omega_D) ;
+
 
 n_E = 50 ;
 [Psi_E,E_mat] = eigs(H , n_E, 'smallestabs') ;
@@ -44,13 +46,15 @@ rho_0_sys(n_init,n_init) = 1.0  ;
 % rho_0_sys = Psi_DVR' * rho_0_sys * Psi_DVR ;
 
 % O_sys 
-P_1 = sparse(zeros([n_E,n_E]));
-P_1(1,1) = 1.0 ;
-P_2 = sparse(zeros([n_E,n_E]));
-P_2(2,2) = 1.0 ;
+O_sys = {H_sys} ;
+for n = 1:10 
+P_n = sparse(zeros([n_E,n_E]));
+P_n(n,n) = 1 ;
+O_sys = [O_sys,{P_n}] ;
+end
 % P_1 = Psi_DVR' * P_1 * Psi_DVR ;
 % P_2 = Psi_DVR' * P_2 * Psi_DVR ;
-O_sys = {H_sys,P_1,P_2} ;
+% O_sys = {H_sys,P_1,P_2} ;
 
 % HEOM truncation
 L_max = 1 ;
