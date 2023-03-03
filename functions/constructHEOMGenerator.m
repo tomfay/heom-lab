@@ -227,9 +227,13 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
         || heom_truncation_info.heom_termination == "partial resummed")
     k_max = heom_truncation_info.termination_k_max ;
     % get the eigenvalues and eigenvectors of the system liouvillian
-    [Pi_sys,lambda_sys] = eig(full(L_sys),'vector') ;
+    [V_sys,E_sys] = eig(H_sys,'vector') ;
+    lambda_sys = -1.0i * kron(E_sys,ones(size(E_sys))) + 1.0i * kron(ones(size(E_sys)),E_sys) ;
+    Pi_sys = kron(V_sys,conj(V_sys)) ;
+%     [Pi_sys,lambda_sys] = eig(full(L_sys),'vector') ;
     %     lambda_sys = 0*lambda_sys ;
-    Pi_sys_inv = inv(Pi_sys) ;
+%     Pi_sys_inv = inv(Pi_sys) ;
+    Pi_sys_inv = Pi_sys' ;
     cs_term = {} ;
     cbars_term = {} ;
     nus_term = {} ;
