@@ -32,7 +32,7 @@ krylov_tol = 1e-10 ;
 L_max = 2 ;
 M_max = 2 ;
 low_temp_corr_method = "low temperature correction" ; % Ishizaki-Tanimura
-% low_temp_corr_method = "ow temperature correction NZ2" ; % NZ2 method
+% low_temp_corr_method = "low temperature correction NZ2" ; % NZ2 method
 % Gamma_cut = (2*pi/beta)*4.01 ;
 % Gamma_cut = Omega_B * 2.01 ;
 % matrices of system observable operators to be returned, sigma_x, sigma_y
