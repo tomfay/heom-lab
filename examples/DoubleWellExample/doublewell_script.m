@@ -71,6 +71,7 @@ rho_0_sys(n_init,n_init) = 1.0  ;
 rho_0_sys = Psi_DVR' * rho_0_sys * Psi_DVR ;
 
 % O_sys system observables
+O_sys = {} ;
 for n = 1:n_E 
 P_n = sparse(zeros([n_E,n_E]));
 P_n(n,n) = 1 ;
@@ -81,8 +82,8 @@ O_sys = [O_sys,{H_sys}] ;
 
 
 % HEOM truncation
-L_max = 2 ;
-M_max = 1 ;
+L_max = 3 ;
+M_max = 2 ;
 
 % dynamics parameters 
 dt = 1e-5 ;
