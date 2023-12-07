@@ -9,3 +9,12 @@ heom-lab provides a matlab implementation of the HEOM method including some non-
 * Dynamics with Debye spectral densities as well as underdamped and overdamped Brownian oscillator baths.
 * Integration of the equations of motion with an adaptive short iterative Arnoldi (SIA) integrator.
 * Truncation of the hierarchy with the standard level-based truncation, as well as more efficient truncation schemes for larger reorganisation energy/high temperature problems based on frequency cut-off of the hierarchy and a coupling/frequency weighted scheme.
+
+## Citations
+If you do use this code for results in any publications, I'd appreciate it if you could cite: 
+"A simple improved low temperature correction for the hierarchical equations of motion" Thomas P. Fay, J. Chem. Phys. 157, 054108 (2022) https://doi.org/10.1063/5.0100365
+If you use the hybrid-HEOM methods, please also cite:
+"Coupled charge and energy transfer dynamics in light harvesting complexes from a hybrid hierarchical equations of motion approach" Thomas. P Fay and David T. Limmer J. Chem. Phys. 157, 174104 (2022) https://doi.org/10.1063/5.0117659
+Thanks!
+
+
