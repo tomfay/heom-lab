@@ -12,9 +12,13 @@ heom-lab provides a matlab implementation of the HEOM method including some non-
 
 ## Citations
 If you do use this code for results in any publications, I'd appreciate it if you could cite: 
+
 "A simple improved low temperature correction for the hierarchical equations of motion" Thomas P. Fay, J. Chem. Phys. 157, 054108 (2022) https://doi.org/10.1063/5.0100365
+
 If you use the hybrid-HEOM methods, please also cite:
+
 "Coupled charge and energy transfer dynamics in light harvesting complexes from a hybrid hierarchical equations of motion approach" Thomas. P Fay and David T. Limmer J. Chem. Phys. 157, 174104 (2022) https://doi.org/10.1063/5.0117659
+
 Thanks!
 
 
