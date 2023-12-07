@@ -4,17 +4,18 @@
 
 % Parameters for the problem
 % system hamiltonian parameters
-omega_cav = 0.006269431 ;
+omega_0 = 0.006269431 ;
+omega_cav = 1.01 * omega_0 ;
 M = 1836.0 ;
 chi = 1*0.00234562 ;
 mu_params = [-1.90249,1.26426,0.37044] ;
 V_params = [-0.021087856, 0.0033107783,0.033160555,3.6749309e-6] ;
 % bath parameters
 beta = 1052.584412992859 ;
-beta = 100 ;
+% beta = 100 ;
 % debye bath parameters
 eta =  6.601876175e-8 ; 
-omega_D = 0.006269431 ;
+omega_D = omega_0 ;
 % omega_D = 0.01 ;
 lambda_D = eta / (2 * omega_D) ;
 
@@ -35,21 +36,22 @@ H_sys_E = sparse(E_mat) ;
 V_E = Psi_E' * spdiags(kron(R,ones([n_q,1])),0,n_q*n_R,n_q*n_R) * Psi_E ; 
 H_sys  = H_sys_E ;
 V = V_E ;
-% [Psi_DVR,V_DVR] = eig(V_E) ;
-% H_sys = Psi_DVR' * H_sys_E * Psi_DVR ;
-% V = sparse(V_DVR) ;
+[Psi_DVR,V_DVR] = eig(V_E) ;
+H_sys = Psi_DVR' * H_sys_E * Psi_DVR ;
+V = sparse(V_DVR) ;
 
 % rho_0
-n_init = 10 ;
+n_init = 13 ;
 rho_0_sys = zeros([n_E,n_E]) ;
 rho_0_sys(n_init,n_init) = 1.0  ;
-% rho_0_sys = Psi_DVR' * rho_0_sys * Psi_DVR ;
+rho_0_sys = Psi_DVR' * rho_0_sys * Psi_DVR ;
 
 % O_sys 
 O_sys = {H_sys} ;
 for n = 1:10 
 P_n = sparse(zeros([n_E,n_E]));
 P_n(n,n) = 1 ;
+P_n = Psi_DVR' * P_n * Psi_DVR ;
 O_sys = [O_sys,{P_n}] ;
 end
 % P_1 = Psi_DVR' * P_1 * Psi_DVR ;
@@ -57,16 +59,16 @@ end
 % O_sys = {H_sys,P_1,P_2} ;
 
 % HEOM truncation
-L_max = 1 ;
-M_max = 0 ;
+L_max = 2 ;
+M_max = 25 ;
 
 % dynamics
-dt = 10.0 ;
-n_steps = 100000 ;
+dt = 2.5 ;
+n_steps = 4000 ;
 krylov_dim = 16 ;
-krylov_tol = 1e-10 ;
-low_temp_corr_method = "low temperature correction" ; % NZ2 method
-low_temp_corr_method = "NZ2" ;
+krylov_tol = 1e-11 ;
+low_temp_corr_method = "low temp correction" ; % NZ2 method
+% low_temp_corr_method = "NZ2" ;
 
 % the full_system object contains all information about the Hamiltonian of
 % the full open quantum system
