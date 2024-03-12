@@ -21,6 +21,11 @@ if (nargin~=4)
     elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
         lambda_baths = [heom_bath_info.lambda_Ds, heom_bath_info.lambda_OBOs, heom_bath_info.lambda_UBOs] ;
         M = findMaxMj(heom_truncation_info.L_cut*sqrt(lambda_baths./heom_bath_info.beta), heom_bath_info.beta) ;
+    elseif (heom_truncation_info.truncation_method == "lindoy cut-off")
+        % get the specified maximum matsurbara mode
+        M = heom_truncation_info.M_max ;
+        % get the max depth of the hierarchy
+        L_max = heom_truncation_info.L_max ;
     end
 
     % get arrays the ado frequencies (nus) and coupling coefficents (cs)
@@ -82,7 +87,7 @@ if (nargin~=4)
         for j = 1:n_debye_pade_baths 
             [nus_array,cs_array,cbars_array,Delta] = constructPadeDecomp(heom_bath_info.omega_Ds_pade(j),...
                 heom_bath_info.lambda_Ds_pade(j),heom_bath_info.beta,heom_bath_info.N_pade(j),heom_bath_info.pade_approximants(j)) ;
-            nus_pade{j} = nus_array ; cs_pade{j} = cs_array ; cbars_pade{j} = cs_array ;
+            nus_pade{j} = nus_array ; cs_pade{j} = cs_array ; cbars_pade{j} = cbars_array ;
             nus = [nus,nus_array] ;
             cs = [cs,cs_array] ;
             cbars = [cbars,cs_array] ;
@@ -92,17 +97,39 @@ if (nargin~=4)
         end
         n_debye_pade = sum((mode_info.N_pade+1)) ;
         
-       
+        n_debye_pade_baths = numel(heom_bath_info.lambda_Ds_pade) ;
         mode_info.n_debye_pade = n_debye_pade ;
         
 
     else
+        n_debye_pade_baths = 0 ;
         mode_info.n_debye_pade = 0 ;
         mode_info.N_pade = [] ;
         cs_array_debye_pade = [] ;
         nus_array_debye_pade = [] ;
     end
 
+    if (numel(heom_bath_info.nus_custom)>0)
+        n_custom_baths = numel(heom_bath_info.nus_custom) ;
+        n_custom_modes = zeros([1,n_custom_baths]) ;
+        for i = 1:n_custom_baths
+           nus = [nus,heom_bath_info.nus_custom{i}] ;
+           cs = [cs,heom_bath_info.cs_custom{i}] ;
+           cbars = [cbars,heom_bath_info.cbars_custom{i}] ;
+           n_custom_modes(i) = numel(heom_bath_info.nus_custom{i}) ;
+        end
+       
+        cs_trunc_custom = heom_bath_info.cs_custom ;
+        cbars_trunc_custom = heom_bath_info.cbars_custom ;
+        nus_trunc_custom = heom_bath_info.nus_custom ;
+        mode_info.n_custom_baths = n_custom_baths ;
+         mode_info.n_custom_modes = n_custom_modes ;
+    else 
+        mode_info.n_custom_baths = 0 ;
+        mode_info.n_custom_modes = [] ;
+    end
+
+    
     if (heom_truncation_info.truncation_method == "frequency cut-off")
         % construct the hierarchy structure with frequency truncation
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyFreqTrunc(heom_truncation_info.Gamma_cut,nus);
@@ -116,6 +143,9 @@ if (nargin~=4)
     elseif (heom_truncation_info.truncation_method == "lambda weighted cut-off")
         % uses the lambda weighted cut-off
         [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyLambdaWeightedCutoffTrunc(heom_truncation_info.L_cut,heom_truncation_info.p,nus,cs,sqrt(lambdas/heom_bath_info.beta));
+    elseif (heom_truncation_info.truncation_method == "lindoy cut-off")
+        [ado_indices,ado_gammas,lower_indices,upper_indices,coupled_mode_indices,truncated_coupled_modes,ado_indices_term,modes_term,term_indices] = generateHierarchyLindoyTrunc(heom_truncation_info.L_max,heom_truncation_info.L_min,nus);
+    
     end
     
     
@@ -306,8 +336,25 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
         mode_info.n_debye_pade_term = 0 ;
     end
 
+    if (numel(heom_bath_info.nus_custom)>0)
+        n_custom_term = 0 ;
+        for j = 1:n_custom_baths
+            j_bath = j + n_debye_baths+n_OBO_baths+n_UBO_baths + n_debye_pade_baths ;
+            nus_term{j_bath} = heom_bath_info.nus_trunc_custom{j} ;
+            cs_term{j_bath} = heom_bath_info.cs_trunc_custom{j} ;
+            cbars_term{j_bath} = heom_bath_info.cbars_trunc_custom{j} ;
+            n_custom_term  = n_custom_term + numel(nus_term{j_bath} ) ;
+        end
+        
+        mode_info.n_custom_term = n_custom_term ;
+    else
+        mode_info.n_custom_term = 0 ;
+    end
 
-    n_NZ2_term = mode_info.n_debye_term + mode_info.n_obo_term + mode_info.n_ubo_term + mode_info.n_debye_pade_term ;
+    % cbars_term 
+    % cs_term
+    % nus_term
+    n_NZ2_term = mode_info.n_debye_term + mode_info.n_obo_term + mode_info.n_ubo_term + mode_info.n_debye_pade_term + mode_info.n_custom_term;
 
     for j = 1:n_baths
         V_comm_Pi_sys{j} = V_comm{j} * Pi_sys ;
@@ -324,9 +371,11 @@ elseif (heom_truncation_info.heom_termination == "NZ2" || heom_truncation_info.h
             J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
             for j =1:n_baths
                 n_jks_term = zeros(size(cs_term{j})) ;
+                if numel(cs_term{j})>0
                 Xi(J_block,J_block) = Xi(J_block,J_block) ...
                     - V_comm_Pi_sys{j} * ((sum(((n_jks_term+1).*cs_term{j})./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_L{j})...
                     - (sum(((n_jks_term+1).*conj(cbars_term{j}))./((ado_gammas(J)+nus_term{j})-lambda_sys ),2).* Pi_sys_inv_V_R{j}));
+                end
             end
         end
     elseif (heom_truncation_info.heom_termination == "RF2" || heom_truncation_info.heom_termination == "low temp correction RF2")
@@ -403,6 +452,7 @@ heom_structure.d_heom = d_heom ;
 heom_structure.n_ados = n_ados ;
 heom_structure.d_liou = d_liou ;
 
+
 % construct the HEOM generator
 for r = 1:n_couplings
     J = lower_indices(r) ;
@@ -411,6 +461,7 @@ for r = 1:n_couplings
     % need to fix getting the bath index!!!!
     %     j_coup = ceil(jk_coup/(M+1)) ; % get the bath index that is coupling J & K
     j_coup = coupled_bath_indices(r) ;
+   
     J_block = ((J-1)*(d_liou)+1):(J*d_liou) ;
     K_block = ((K-1)*(d_liou)+1):(K*d_liou) ;
     n_jk_coup = ado_indices(K,jk_coup) ;

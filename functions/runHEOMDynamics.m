@@ -1,3 +1,4 @@
+
 function [O_t,t,rho_final_heom,L_heom] = runHEOMDynamics(full_system,heom_dynamics)
 % convert the bath info into a more use-able form
 heom_bath_info = getBathInformation(full_system) ;
@@ -13,6 +14,9 @@ d_liou = d_hilb * d_hilb ;
 % construct the rho_0 for the full hierarchy
 rho_0_heom = zeros([d_heom,1]) ;
 rho_0_heom(1:d_liou) = convertToLiouvilleVector(heom_dynamics.rho_0_sys) ;
+if isfield(heom_dynamics,"rho_0_heom")
+    rho_0_heom = heom_dynamics.rho_0_heom ;
+end
 % set up the observable operators
 n_obs = numel(heom_dynamics.observables.system) ;
 O = sparse([],[],[],n_obs,d_heom) ;

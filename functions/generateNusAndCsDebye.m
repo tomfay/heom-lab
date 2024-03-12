@@ -1,4 +1,4 @@
-function [nus,cs] = generateNusAndCsDebye(gamma_Ds,lambda_Ds,beta,M)
+function [nus,cs,cbars] = generateNusAndCsDebye(gamma_Ds,lambda_Ds,beta,M)
 % generates the nu_jks and c_jks for a set of Debye baths with debye
 % frequencies specified by the row vector gamma_Ds and temperature beta
 
@@ -17,5 +17,6 @@ lambda_Ds_col = reshape(lambda_Ds,[N_baths,1]) ;
 gamma_Ds_col = reshape(gamma_Ds,[N_baths,1]) ; 
 cs(:,1) = gamma_Ds_col.*lambda_Ds_col .* (-1.0i + cot(0.5*beta*gamma_Ds_col)) ;
 cs(:,2:(M+1)) = (4.0/beta)*gamma_Ds_col.*lambda_Ds_col.*nus(:,2:(M+1))./(nus(:,2:(M+1)).^2 - gamma_Ds_col.^2) ;
+cbars = cs ; 
 
 end

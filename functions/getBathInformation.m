@@ -9,6 +9,7 @@ lambda_OBOs = [] ; Omega_OBOs = [] ; gamma_OBOs = [] ;
 lambda_UBOs = [] ; Omega_UBOs = [] ; gamma_UBOs = [] ;
 lambda_Ds_pade = [] ; omega_Ds_pade = [] ; pade_approximants = [] ; N_pade = [] ;
 Vs = {} ;
+nus_custom = {} ; cs_custom = {} ; cbars_custom = {} ; cs_trunc_custom = {} ; nus_trunc_custom = {} ; cbars_trunc_custom = {} ;
 
 for i = 1:n_baths
     if (baths{i}.spectral_density == "debye")
@@ -47,7 +48,19 @@ for i = 1:n_baths
     end
 end
 
-heom_bath_info = struct ;
+for i = 1:n_baths
+    if (baths{i}.spectral_density == "custom")
+        nus_custom = [nus_custom,{baths{i}.nus}] ; 
+        cs_custom = [cs_custom,{baths{i}.cs}] ; 
+        cbars_custom = [cbars_custom,{baths{i}.cbars}] ; 
+        cs_trunc_custom = [cs_trunc_custom,{baths{i}.cs_trunc}] ; 
+        cbars_trunc_custom = [cbars_trunc_custom,{baths{i}.cbars_trunc}] ; 
+        nus_trunc_custom = [nus_trunc_custom,{baths{i}.nus_trunc}] ; 
+        Vs = [Vs,{baths{i}.V}] ; 
+    end
+end
+
+heom_bath_info = struct() ;
 heom_bath_info.n_baths = n_baths ;
 heom_bath_info.Vs = Vs ;
 heom_bath_info.lambda_Ds = lambda_Ds ;
@@ -63,6 +76,12 @@ heom_bath_info.lambda_Ds_pade = lambda_Ds_pade ;
 heom_bath_info.omega_Ds_pade = omega_Ds_pade ;
 heom_bath_info.N_pade = N_pade ;
 heom_bath_info.pade_approximants = pade_approximants ;
+heom_bath_info.nus_custom = nus_custom ;
+heom_bath_info.cs_custom = cs_custom ;
+heom_bath_info.cbars_custom = cbars_custom ;
+heom_bath_info.nus_trunc_custom = nus_trunc_custom ;
+heom_bath_info.cs_trunc_custom = cs_trunc_custom ;
+heom_bath_info.cbars_trunc_custom = cbars_trunc_custom ;
 
 
 end
